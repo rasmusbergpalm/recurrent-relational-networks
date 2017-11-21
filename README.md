@@ -4,11 +4,11 @@ Contains the code to reproduce the experiments in the paper Recurrent Relational
 
 ### Sudoku
 
- * `python tasks/sudoku/train.py` will train a RRN with the hyper parameters from the paper and save the best model as best.npz in the working directory
- * `python tasks/sudoku/test.py` will load `best.npz` from the working directory and evaluate it on the test set
+ * `python tasks/sudoku/train.py` will train a RRN with the hyper parameters from the paper and save the best model in the working directory
+ * `python tasks/sudoku/test.py` will load the best model from the working directory and evaluate it on the test set
 
 
 ### BaBi
 
- * `python tasks/babi/train.py` will train a RRN with the hyper parameters from the paper and save the best model as best.npz in the working directory
- * `python tasks/babi/test.py` will load `best.npz` from the working directory and evaluate it on the test set
+ * `python tasks/babi/train.py` will train a RRN with the hyper parameters from the paper and save the best model in the working directory
+ * `python tasks/babi/test.py` will load the best model from the working directory and evaluate it on the test set
