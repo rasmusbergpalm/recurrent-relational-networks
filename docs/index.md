@@ -1,8 +1,47 @@
-Humans possess an ability to abstractly reason about objects and their interactions, an ability not shared with state-of-the-art deep learning models.
+Consider an image of a child swinging on a swing.
+It's almost impossible to not think of this as two abstract objects, the child and the swing, interacting.
+We could think of it in terms of the millions of numbers that make up the pixel values of the image.
+Or the angles of all the edges in the image.
+Or consider each 10x10 pixel region.
+But we don't.
+Instead we intuitively recognize the objects and reason about their interactions.
+We use the term relational reasoning for this object and interaction centric reasoning.
+Consider the image below and try to answer the following question:
+*" What size is the cylinder that is left of the brown metal thing that is left of the big sphere?"*
 
-Relational networks, introduced by Santoro et al. (2017), add the capacity for relational reasoning to deep neural networks, but are limited in the complexity of the reasoning tasks they can address.
+![](clevr.jpg)
 
-We introduce recurrent relational networks which increase the suite of solvable tasks to those that require an order of magnitude more steps of relational reasoning.
+This is an example from the [CLEVR](http://cs.stanford.edu/people/jcjohns/clevr/) dataset.
+It requires relational reasoning, since you need to consider the
+relative position of the objects with respect to each other.
+
+> Deep neural networks are very good at recognizing objects, but when it comes to reasoning about their
+*interactions* even state of the art neural networks struggle.
+
+Adam Santoro and co-authors proposed the [Relation Network](https://arxiv.org/abs/1706.01427) (RN) which
+is a simple module that can add relational reasoning capacity to any neural network. They add a RN
+to an otherwise standard convolutional network and achieve super-human performance on the CLEVR dataset.
+They also use it for BaBi, a textual question answering task, solving 18 out of 20 tasks.
+The RN is a major step forward, but it has a limitation. The way it is constructed, each recognized object
+can only interact with the other recognized objects *once*, after which the network must give an answer. This
+limit the RN since it cannot reason about derived interactions, i.e. object A affecting object B, which
+in turn affects object C, and so on. In the RN object A must directly affect object C, or not at all. Going
+through the interaction with object B is not an option.
+
+To solve this limitation we introduce the Recurrent Relational Network (RRN). Instead of only performing a single
+step of relational reasoning the RRN performs multiple steps. At each step, each object is affected by each other object
+while also taking into account it's own previous state. This allows interactions to propagate from
+one object to the next, forming complex chains of interactions.
+
+To show that the RRN can solve problems requiring very complex relational reasoning we use it for solving Sudoku puzzles.
+For those not familiar with Sudoku puzzles, it's a numbers puzzle, with 81 cells in a 9x9 grid. Each cell
+is either empty or contains a digit (1-9) from the start. The goal is to fill each of
+the empty cells with a digit, such that each column, row, and 3x3 non overlapping box contains the digits 1
+through 9.
+
+We train a RRN to solve 96.6% of the hardest Sudoku's with only 17 givens. For comparison the RN cannot
+solve any of these puzzles.
+
 
 We use recurrent relational networks to solve Sudoku puzzles and achieve state-of-the-art results by solving 96.6% of the hardest Sudoku puzzles, where relational networks fail to solve any.
 
