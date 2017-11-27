@@ -1,7 +1,3 @@
----
-comments: true
----
-
 ## Relational Reasoning
 
 ![](clevr.jpg)
@@ -110,3 +106,19 @@ We think this is because the RRN is naturally designed to solve the questions re
 The Recurrent Relational Network is a general purpose module that can augment any neural network model with a powerful relational reasoning capacity.
 
 For more details see the [paper](https://arxiv.org/pdf/1711.08028.pdf) or the [code](https://github.com/rasmusbergpalm/recurrent-relational-networks)
+
+<div id="disqus_thread"></div>
+<script>
+var disqus_config = function () {
+this.page.url = "https://rasmusbergpalm.github.io/recurrent-relational-networks";
+this.page.identifier = "recurrent-relational-networks";
+};
+*/
+(function() { // DON'T EDIT BELOW THIS LINE
+var d = document, s = d.createElement('script');
+s.src = 'https://rasmusbergpalmgithubio.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
