@@ -1,3 +1,7 @@
+---
+comments: true
+---
+
 ## Relational Reasoning
 
 ![](clevr.jpg)
