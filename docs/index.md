@@ -43,27 +43,45 @@ This allows interactions to propagate from one object to the next, forming compl
 ### Solving Sudokus
 
 To show that the RRN can solve problems requiring very complex relational reasoning we use it for solving Sudoku puzzles.
-For those not familiar with Sudoku puzzles, it's a numbers puzzle, with 81 cells in a 9x9 grid.
+Now, there are plenty of algorithms out there for solving Sudokus.
+The difference between those traditional algorithms, and the RRN is that the RRN is a neural network module.
+This means that unlike traditional algorithms it can be added to any other neural network to add a complex relational reasoning capacity.
+For those not familiar with Sudoku puzzles, it is a numbers puzzle, with 81 cells in a 9x9 grid.
 Each cell is either empty or contains a digit (1-9) from the start.
 The goal is to fill each of the empty cells with a digit, such that each column, row, and 3x3 non overlapping box contains the digits 1 through 9 exactly once.
-See the two images below for a relatively easy Sudoku with 30 given cells and it's solution in red.
+See the two images below for a relatively easy Sudoku with 30 given cells and the solution in red.
 
-<div style="display: inline-block; margin: auto;text-align: center;">
+<div style="display: block; margin: auto;text-align: center;">
     <img src="quiz.png" />
     <p>A sudoku with 30 given cells.</p>
 </div>
-<div style="display: inline-block; margin: auto;text-align: center;">
+
+<div style="display: block; margin: auto;text-align: center;">
     <img src="answer.png" />
     <p>The solution</p>
 </div>
 
+Solving a Sudoku requires many steps of methodical relational reasoning.
+You can't deduce the solution from the givens in a single step.
+It requires many steps of intermediate results, methodical deduction, and possibly trying several partial solutions before the right one is found.
 
-We train a RRN to solve 96.6% of the hardest Sudoku's with only 17 givens. For comparison the RN cannot
-solve any of these puzzles.
+We trained a RRN to solve Sudokus by considering each cell an object, which affects each other cell in the same row, column and box.
+We didn't tell it about any strategy or gave it any other hints.
+The network learned a powerful strategy which solves **96.6%** of even the hardest Sudoku's with only 17 givens.
+For comparison the non-recurrent RN failed to solve any of these puzzles, despite having more parameters and being trained for longer.
 
+At each step the RRN outputs a probability distribution for each cell over the digits 1-9, indicating which digit the network believes should be in that cell.
+We can visualize these beliefs as they change over the steps the network takes.
 
-We use recurrent relational networks to solve Sudoku puzzles and achieve state-of-the-art results by solving 96.6% of the hardest Sudoku puzzles, where relational networks fail to solve any.
+<div style="display: block; margin: auto;text-align: center;">
+    <img src="1.gif" />
+    <p>The Recurrent Relational Network solving a Sudoku. The size of each digit scales (non-linearly) with the probability the network assign.</p>
+</div>
 
-We also apply our model to the BaBi textual QA dataset solving 19/20 tasks which is competitive with state-of-the-art sparse differentiable neural computers.
+For more GIFs see [imgur.com/a/ALsfB](https://imgur.com/a/ALsfB)
+
+### Reasoning about simple texts
+
+We also trained our model to the BaBi textual QA dataset solving 19/20 tasks which is competitive with state-of-the-art sparse differentiable neural computers.
 
 The recurrent relational network is a general purpose module that can augment any neural network model with the capacity to do many-step relational reasoning.
