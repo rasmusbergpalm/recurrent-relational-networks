@@ -16,7 +16,7 @@ This is an example question from the [CLEVR](http://cs.stanford.edu/people/jcjoh
 In order to answer it you need to consider the relative position of the objects with respect to each other.
 This object and interaction centric thinking is called relational reasoning and it's a core part of human intelligence.
 
-> Deep neural networks are very good at recognizing objects, but when it comes to reasoning about their **interactions** even state of the art neural networks struggle.
+Deep neural networks are very good at recognizing objects, but when it comes to reasoning about their **interactions** even state of the art neural networks struggle.
 
 For example, a state of the art convolutional network can easily recognize each of the objects in the image above,
 but fails trying to answer the question since it requires reasoning about the objects in relation to each other.
