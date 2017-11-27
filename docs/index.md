@@ -77,16 +77,20 @@ We can visualize these beliefs as they change over the steps the network takes.
     <img src="1.gif" style="max-height: 95vh;"/>
     <p>
         The Recurrent Relational Network solving a Sudoku. The size of each digit scales (non-linearly) with the probability the network assign.
-        For more GIFs see [imgur.com/a/ALsfB](https://imgur.com/a/ALsfB)
+        For more GIFs see <a href="https://imgur.com/a/ALsfB">imgur.com/a/ALsfB</a>
     </p>
 </div>
 
 ### Reasoning about simple texts
 
 > Mary got the milk there.
+>
 > John moved to the bedroom.
+>
 > Sandra went back to the kitchen.
+>
 > Mary travelled to the hallway.
+>
 > Where is the milk?
 
 Simple questions like these, and slightly more complex ones, make up the [BaBi](https://research.fb.com/downloads/babi/) dataset.
