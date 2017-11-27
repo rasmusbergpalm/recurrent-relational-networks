@@ -113,7 +113,6 @@ var disqus_config = function () {
 this.page.url = "https://rasmusbergpalm.github.io/recurrent-relational-networks";
 this.page.identifier = "recurrent-relational-networks";
 };
-*/
 (function() { // DON'T EDIT BELOW THIS LINE
 var d = document, s = d.createElement('script');
 s.src = 'https://rasmusbergpalmgithubio.disqus.com/embed.js';
