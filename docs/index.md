@@ -1,22 +1,22 @@
-Consider an image of a child swinging on a swing.
-It's almost impossible to not think of this as two abstract objects, the child and the swing, interacting.
+Consider the image below
+
+![](clevr.jpg)
+
+It's almost impossible to not think of this as the objects (spheres, cubes, etc.) in the image.
 We could think of it in terms of the millions of numbers that make up the pixel values of the image.
 Or the angles of all the edges in the image.
 Or consider each 10x10 pixel region.
 But we don't.
-Instead we intuitively recognize the objects and reason about their interactions.
-We use the term relational reasoning for this object and interaction centric reasoning.
-Consider the image below and try to answer the following question:
+Instead we intuitively recognize the objects and reason about the image in terms of them.
+
+Try to answer the following question:
 *" What size is the cylinder that is left of the brown metal thing that is left of the big sphere?"*
-
-![](clevr.jpg)
-
-This is an example from the [CLEVR](http://cs.stanford.edu/people/jcjohns/clevr/) dataset.
-It requires relational reasoning, since you need to consider the
-relative position of the objects with respect to each other.
+This is an example question from the [CLEVR](http://cs.stanford.edu/people/jcjohns/clevr/) dataset.
+In order to answer it you need to consider the relative position of the objects with respect to each other.
+This object and interaction centric thinking is called relational reasoning and it's a core part of human intelligence.
 
 > Deep neural networks are very good at recognizing objects, but when it comes to reasoning about their
-*interactions* even state of the art neural networks struggle.
+**interactions** even state of the art neural networks struggle.
 
 Adam Santoro and co-authors proposed the [Relation Network](https://arxiv.org/abs/1706.01427) (RN) which
 is a simple module that can add relational reasoning capacity to any neural network. They add a RN
