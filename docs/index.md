@@ -48,17 +48,11 @@ Each cell is either empty or contains a digit (1-9) from the start.
 The goal is to fill each of the empty cells with a digit, such that each column, row, and 3x3 non overlapping box contains the digits 1 through 9 exactly once.
 See the two images below for a relatively easy Sudoku with 30 given cells and it's solution in red.
 
-<!--div style="width: 100%;">
-    <img style="float: left;" src="quiz.png" />
-    <img style="float: right;" src="answer.png" />
-    <br style="clear: both;"/>
-</div-->
-
-<div style="display: inline-block;">
+<div style="display: inline-block; margin: auto;text-align: center;">
     <img src="quiz.png" />
-    <p>A sudoku</p>
+    <p>A sudoku with 30 given cells.</p>
 </div>
-<div style="display: inline-block;">
+<div style="display: inline-block; margin: auto;text-align: center;">
     <img src="answer.png" />
     <p>The solution</p>
 </div>
