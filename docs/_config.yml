@@ -1,3 +1,5 @@
 title: Recurrent Relational Networks
 description: Complex relational reasoning with neural networks.
 theme: jekyll-theme-cayman
+github:
+  is_project_page: false
