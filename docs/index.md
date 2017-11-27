@@ -3,7 +3,7 @@
 ## Relational Reasoning
 
 Consider the image above.
-It's almost impossible to not think of this as the objects (spheres, cubes, etc.) in the image.
+It's almost impossible to not think of this as the objects; spheres, cubes, etc.
 We could think of it in terms of the millions of numbers that make up the pixel values of the image.
 Or the angles of all the edges in the image.
 Or consider each 10x10 pixel region.
@@ -43,9 +43,10 @@ This allows interactions to propagate from one object to the next, forming compl
 ### Solving Sudokus
 
 To show that the RRN can solve problems requiring very complex relational reasoning we use it for solving Sudoku puzzles.
+
 Now, there are plenty of algorithms out there for solving Sudokus.
-The difference between those traditional algorithms, and the RRN is that the RRN is a neural network module.
-This means that unlike traditional algorithms it can be added to any other neural network to add a complex relational reasoning capacity.
+Unlike these traditional algorithms the RRN is a neural network module that can be added to any other neural network to add a complex relational reasoning capacity.
+
 For those not familiar with Sudoku puzzles, it is a numbers puzzle, with 81 cells in a 9x9 grid.
 Each cell is either empty or contains a digit (1-9) from the start.
 The goal is to fill each of the empty cells with a digit, such that each column, row, and 3x3 non overlapping box contains the digits 1 through 9 exactly once.
@@ -61,9 +62,8 @@ See the two images below for a relatively easy Sudoku with 30 given cells and th
     <p>The solution</p>
 </div>
 
-Solving a Sudoku requires many steps of methodical relational reasoning.
-You can't deduce the solution from the givens in a single step.
-It requires many steps of intermediate results, methodical deduction, and possibly trying several partial solutions before the right one is found.
+You can't deduce the solution to a Sudoku in a single step.
+It requires many steps of methodical deduction, intermediate results, and possibly trying several partial solutions before the right one is found.
 
 We trained a RRN to solve Sudokus by considering each cell an object, which affects each other cell in the same row, column and box.
 We didn't tell it about any strategy or gave it any other hints.
