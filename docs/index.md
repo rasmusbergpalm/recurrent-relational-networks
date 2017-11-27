@@ -46,10 +46,12 @@ To show that the RRN can solve problems requiring very complex relational reason
 For those not familiar with Sudoku puzzles, it's a numbers puzzle, with 81 cells in a 9x9 grid.
 Each cell is either empty or contains a digit (1-9) from the start.
 The goal is to fill each of the empty cells with a digit, such that each column, row, and 3x3 non overlapping box contains the digits 1 through 9 exactly once.
-See the two images below for a relatively easy Sudoku with 30 given cells and it's solution.
+See the two images below for a relatively easy Sudoku with 30 given cells and it's solution in red.
 
-<img style="float: left;" src="quiz.png">
-<img style="float: right;" src="answer.png">
+<div>
+    <img style="float: left;" src="quiz.png" />
+    <img style="float: right;" src="answer.png" />
+</div>
 
 We train a RRN to solve 96.6% of the hardest Sudoku's with only 17 givens. For comparison the RN cannot
 solve any of these puzzles.
