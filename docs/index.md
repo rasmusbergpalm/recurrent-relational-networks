@@ -27,6 +27,7 @@ Adam Santoro and co-authors proposed the [Relation Network](https://arxiv.org/ab
 It is a simple module that can add relational reasoning capacity to any neural network.
 They add a RN to an otherwise standard convolutional network and achieve super-human performance on the CLEVR dataset.
 They also use it for BaBi, a textual question answering task, solving 18 out of 20 tasks.
+
 The RN is a major step forward, but it has a limitation.
 The way it is constructed, each recognized object can only interact with the other recognized objects *once*, after which the network must give an answer.
 This limit the RN since it cannot reason about derived interactions, i.e. object A affecting object B, which in turn affects object C, and so on.
