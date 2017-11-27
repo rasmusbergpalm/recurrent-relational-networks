@@ -48,10 +48,10 @@ Each cell is either empty or contains a digit (1-9) from the start.
 The goal is to fill each of the empty cells with a digit, such that each column, row, and 3x3 non overlapping box contains the digits 1 through 9 exactly once.
 See the two images below for a relatively easy Sudoku with 30 given cells and it's solution in red.
 
-<div style="width: 100%">
+<div style="width: 100%;">
     <img style="float: left;" src="quiz.png" />
     <img style="float: right;" src="answer.png" />
-    <div style="clear: both;></div>
+    <br style="clear: both;/>
 </div>
 
 We train a RRN to solve 96.6% of the hardest Sudoku's with only 17 givens. For comparison the RN cannot
