@@ -1,6 +1,6 @@
-![](clevr.jpg)
-
 ## Relational Reasoning
+
+![](clevr.jpg)
 
 Consider the image above.
 It's almost impossible to not think of this as the objects; spheres, cubes, etc.
@@ -74,14 +74,30 @@ At each step the RRN outputs a probability distribution for each cell over the d
 We can visualize these beliefs as they change over the steps the network takes.
 
 <div style="display: block; margin: auto;text-align: center;">
-    <img src="1.gif" />
-    <p>The Recurrent Relational Network solving a Sudoku. The size of each digit scales (non-linearly) with the probability the network assign.</p>
+    <img src="1.gif" style="max-height: 95vh;"/>
+    <p>
+        The Recurrent Relational Network solving a Sudoku. The size of each digit scales (non-linearly) with the probability the network assign.
+        For more GIFs see [imgur.com/a/ALsfB](https://imgur.com/a/ALsfB)
+    </p>
 </div>
-
-For more GIFs see [imgur.com/a/ALsfB](https://imgur.com/a/ALsfB)
 
 ### Reasoning about simple texts
 
-We also trained our model to the BaBi textual QA dataset solving 19/20 tasks which is competitive with state-of-the-art sparse differentiable neural computers.
+> Mary got the milk there.
+> John moved to the bedroom.
+> Sandra went back to the kitchen.
+> Mary travelled to the hallway.
+> Where is the milk?
 
-The recurrent relational network is a general purpose module that can augment any neural network model with the capacity to do many-step relational reasoning.
+Simple questions like these, and slightly more complex ones, make up the [BaBi](https://research.fb.com/downloads/babi/) dataset.
+
+Like the RN we also evaluated our RRN on the BaBi dataset.
+We solved 19/20 tasks, one better than the RN, which is competitive with state-of-the-art sparse [differentiable neural computers](https://deepmind.com/blog/differentiable-neural-computers/).
+Notably the RRN trained in about 24 hours on four GPUs whereas the RN took several days on 10+ GPUs.
+We think this is because the RRN is naturally designed to solve the questions requiring more than one step of reasoning.
+
+## Conclusion
+
+The Recurrent Relational Network is a general purpose module that can augment any neural network model with a powerful relational reasoning capacity.
+
+For more details see the [paper](https://arxiv.org/pdf/1711.08028.pdf) or the [code](https://github.com/rasmusbergpalm/recurrent-relational-networks)
