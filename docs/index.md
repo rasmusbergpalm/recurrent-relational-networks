@@ -51,7 +51,7 @@ See the two images below for a relatively easy Sudoku with 30 given cells and it
 <div style="width: 100%;">
     <img style="float: left;" src="quiz.png" />
     <img style="float: right;" src="answer.png" />
-    <br style="clear: both;/>
+    <br style="clear: both;"/>
 </div>
 
 We train a RRN to solve 96.6% of the hardest Sudoku's with only 17 givens. For comparison the RN cannot
