@@ -107,6 +107,8 @@ The Recurrent Relational Network is a general purpose module that can augment an
 
 For more details see the [paper](https://arxiv.org/pdf/1711.08028.pdf) or the [code](https://github.com/rasmusbergpalm/recurrent-relational-networks)
 
+## Discussion
+
 <div id="disqus_thread"></div>
 <script>
 var disqus_config = function () {
