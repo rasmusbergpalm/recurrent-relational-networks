@@ -108,7 +108,7 @@ We think this is because the RRN is naturally designed to solve the questions re
 The Recurrent Relational Network is a general purpose module that can augment any neural network model with a powerful relational reasoning capacity.
 
 We believe relational reasoning is important for many tasks.
-For example, playing games, whether it be Go or Starcraft II requires recognizing and reasoning about the objects in the game to predict the long term outcomes of actions.
+For example, playing games, e.g. Go or Starcraft II, requires recognizing and reasoning about the objects in the game to predict the long term outcomes of actions.
 Another example is self driving cars.
 To navigate safely it must recognize relevant objects, e.g. cars, cyclists, stop signs, etc. and reason about how they will interact.
 
