@@ -46,7 +46,9 @@ This allows interactions to propagate from one object to the next, forming compl
 To show that the RRN can solve problems requiring very complex relational reasoning we use it for solving Sudoku puzzles.
 
 Now, there are plenty of algorithms out there for solving Sudokus.
-Unlike these traditional algorithms the RRN is a neural network module that can be added to any other neural network to add a complex relational reasoning capacity.
+The RRN differs from these traditional algorithms in two important ways
+1. It is a neural network module that *learns* an algorithm from data rather than being hand-crafted.
+2. It can be added to any other neural network and trained end-to-end to add a complex relational reasoning capacity.
 
 For those not familiar with Sudoku puzzles, it is a numbers puzzle, with 81 cells in a 9x9 grid.
 Each cell is either empty or contains a digit (1-9) from the start.
@@ -54,13 +56,13 @@ The goal is to fill each of the empty cells with a digit, such that each column,
 See the two images below for a relatively easy Sudoku with 30 given cells and the solution in red.
 
 <div style="display: block; margin: auto;text-align: center;">
-    <img src="quiz.png" />
     <p>A sudoku with 30 given cells.</p>
+    <img src="quiz.png" />
 </div>
 
 <div style="display: block; margin: auto;text-align: center;">
-    <img src="answer.png" />
     <p>The solution</p>
+    <img src="answer.png" />
 </div>
 
 You can't deduce the solution to a Sudoku in a single step.
@@ -97,7 +99,7 @@ We can visualize these beliefs as they change over the steps the network takes.
 Simple questions like these, and slightly more complex ones, make up the [BaBi](https://research.fb.com/downloads/babi/) dataset.
 
 Like the RN we also evaluated our RRN on the BaBi dataset.
-We solved 19/20 tasks, one better than the RN, which is competitive with state-of-the-art sparse [differentiable neural computers](https://deepmind.com/blog/differentiable-neural-computers/).
+We solved 19/20 tasks, one better than the RN, and as good as state-of-the-art sparse [differentiable neural computers](https://deepmind.com/blog/differentiable-neural-computers/) with also solve 19/20.
 Notably the RRN trained in about 24 hours on four GPUs whereas the RN took several days on 10+ GPUs.
 We think this is because the RRN is naturally designed to solve the questions requiring more than one step of reasoning.
 
@@ -105,7 +107,12 @@ We think this is because the RRN is naturally designed to solve the questions re
 
 The Recurrent Relational Network is a general purpose module that can augment any neural network model with a powerful relational reasoning capacity.
 
-For more details see the [paper](https://arxiv.org/pdf/1711.08028.pdf) or the [code](https://github.com/rasmusbergpalm/recurrent-relational-networks)
+We believe relational reasoning is important for many tasks.
+For example, playing games, whether it be Go or Starcraft II requires recognizing and reasoning about the objects in the game to predict the long term outcomes of actions.
+Another example is self driving cars.
+To navigate safely it must recognize relevant objects, e.g. cars, cyclists, stop signs, etc. and reason about how they will interact.
+
+For all the details see the [paper](https://arxiv.org/pdf/1711.08028.pdf) and the [code](https://github.com/rasmusbergpalm/recurrent-relational-networks)
 
 ## Discussion
 
