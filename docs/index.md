@@ -2,6 +2,7 @@
 
 ![](clevr.jpg)
 
+What is relational reasoning?
 Consider the image above.
 It's almost impossible to not think of this as the objects; spheres, cubes, etc.
 We could think of it in terms of the millions of numbers that make up the pixel values of the image.
@@ -14,7 +15,7 @@ Try to answer the following question:
 *" What size is the cylinder that is left of the brown metal thing that is left of the big sphere?"*
 This is an example question from the [CLEVR](http://cs.stanford.edu/people/jcjohns/clevr/) dataset.
 In order to answer it you need to consider the relative position of the objects with respect to each other.
-This object and interaction centric thinking is called relational reasoning and it's a core part of human intelligence.
+This object and interaction centric thinking is called relational reasoning and it is a core part of human intelligence.
 
 Deep neural networks are very good at recognizing objects, but when it comes to reasoning about their **interactions** even state of the art neural networks struggle.
 
@@ -30,7 +31,7 @@ They also use it for BaBi, a textual question answering task, solving 18 out of 
 
 The RN is a major step forward, but it has a limitation.
 The way it is constructed, each recognized object can only interact with the other recognized objects *once*, after which the network must give an answer.
-This limit the RN since it cannot reason about derived interactions, i.e. object A affecting object B, which in turn affects object C, and so on.
+This limits the RN since it cannot reason about derived interactions, i.e. object A affecting object B, which in turn affects object C, and so on.
 In the RN, object A must directly affect object C, or not at all.
 Going through the interaction with object B is not an option.
 
@@ -86,6 +87,8 @@ We can visualize these beliefs as they change over the steps the network takes.
 
 ### Reasoning about simple texts
 
+The [BaBi](https://research.fb.com/downloads/babi/) dataset consists of simple questions like the one below.
+
 > Mary got the milk there.
 >
 > John moved to the bedroom.
@@ -96,11 +99,9 @@ We can visualize these beliefs as they change over the steps the network takes.
 >
 > Where is the milk?
 
-Simple questions like these, and slightly more complex ones, make up the [BaBi](https://research.fb.com/downloads/babi/) dataset.
-
 Like the RN we also evaluated our RRN on the BaBi dataset.
-We solved 19/20 tasks, one better than the RN, and as good as state-of-the-art sparse [differentiable neural computers](https://deepmind.com/blog/differentiable-neural-computers/) with also solve 19/20.
-Notably the RRN trained in about 24 hours on four GPUs whereas the RN took several days on 10+ GPUs.
+We solved 19/20 tasks, one better than the RN, and as good as state-of-the-art sparse [differentiable neural computers](https://deepmind.com/blog/differentiable-neural-computers/) which also solve 19/20.
+Notably the RRN took about 24 hours to train on four GPUs whereas the RN took several days on 10+ GPUs.
 We think this is because the RRN is naturally designed to solve the questions requiring more than one step of reasoning.
 
 ## Conclusion
