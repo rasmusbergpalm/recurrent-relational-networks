@@ -8,9 +8,9 @@ import util
 
 
 class AlphaGo(Model):
-    n_blocks = 3  # 39
-    n_hid = 32  # 256
-    batch_size = 16  # 2048
+    n_blocks = 20  # 39
+    n_hid = 256  # 256
+    batch_size = 256  # 2048
 
     def __init__(self):
         self.is_training_ph = tf.placeholder(tf.bool, name='is_training')
@@ -82,7 +82,7 @@ class AlphaGo(Model):
 
         lr = tf.case(
             schedule,
-            default=lambda: 0.1,
+            default=lambda: 0.01,
             exclusive=True
         )
         tf.summary.scalar('lr', lr)
