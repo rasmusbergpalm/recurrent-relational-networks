@@ -18,5 +18,5 @@ def train(model: Model):
             val_loss = model.val_batch()
             if val_loss < best:
                 best = val_loss
-                model.save('best')
+                model.save('./best')
             start = time.time()
