@@ -82,7 +82,7 @@ class AlphaGo(Model):
 
         lr = tf.case(
             schedule,
-            default=lambda: 0.1,
+            default=lambda: 0.001,
             exclusive=True
         )
         tf.summary.scalar('lr', lr)
