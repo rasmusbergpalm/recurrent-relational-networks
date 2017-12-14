@@ -209,6 +209,7 @@ class SudokuDeeplyLearnedMessages(Model):
         _, _loss, _logits, _summaries, _step = self.session.run([self.train_step, self.loss, self.out, self.summaries, self.global_step], {self.mode: 'train'})
         if _step % 1000 == 0:
             self.train_writer.add_summary(_summaries, _step)
+            self.train_writer.flush()
 
         return _loss
 
@@ -219,4 +220,5 @@ class SudokuDeeplyLearnedMessages(Model):
     def val_batch(self):
         _loss, _predicted, _answers, _summaries, _step = self.session.run([self.loss, self.predicted, self.answers, self.summaries, self.global_step], {self.mode: 'valid'})
         self.test_writer.add_summary(_summaries, _step)
+        self.test_writer.flush()
         return _loss
