@@ -98,7 +98,7 @@ def plane_encoded(positions):
 
         color, rc = pos.move
         if rc is None:
-            action = 19 * 19 + 1  # pass
+            action = 19 * 19  # pass
         else:
             row, column = rc
             action = row * 19 + column
