@@ -82,12 +82,12 @@ class AlphaGo(Model):
 
         lr = tf.case(
             schedule,
-            default=lambda: 0.001,
+            default=lambda: 0.1,
             exclusive=True
         )
         tf.summary.scalar('lr', lr)
 
-        self.optimizer = tf.train.MomentumOptimizer(learning_rate=lr, momentum=0.9, use_nesterov=True)
+        self.optimizer = tf.train.MomentumOptimizer(learning_rate=0*lr, momentum=0.9, use_nesterov=True)
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
             self.train_op = self.optimizer.minimize(self.loss, self.global_step)
