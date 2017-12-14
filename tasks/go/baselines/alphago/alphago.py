@@ -104,7 +104,7 @@ class AlphaGo(Model):
 
     def train_batch(self):
         _, summaries, loss, step = self.session.run([self.train_op, self.summaries, self.loss, self.global_step], {self.is_training_ph: True})
-        if step % 1 == 0:
+        if step % 1000 == 0:
             self.train_writer.add_summary(summaries, step)
             self.train_writer.flush()
         return loss
