@@ -53,7 +53,6 @@ class SudokuDeeplyLearnedMessages(Model):
     tensorboard_dir = os.environ.get('TENSORBOARD_DIR') or '/tmp/tensorboard'
 
     def __init__(self, is_testing):
-        super().__init__()
         self.is_testing = is_testing
         with tf.Graph().as_default(), tf.device('/cpu:0'):
             regularizer = layers.l2_regularizer(1e-4)

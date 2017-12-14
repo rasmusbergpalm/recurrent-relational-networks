@@ -25,7 +25,6 @@ class SudokuRecurrentRelationalNet(Model):
     edges = 'sudoku'
 
     def __init__(self, is_testing):
-        super().__init__()
         self.is_testing = is_testing
         with tf.Graph().as_default(), tf.device('/cpu:0'):
             regularizer = layers.l2_regularizer(1e-4)

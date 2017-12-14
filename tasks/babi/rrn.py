@@ -31,7 +31,6 @@ class BaBiRecurrentRelationalNet(Model):
     n_hidden = 128
 
     def __init__(self, is_testing):
-        super().__init__()
         self.is_testing = is_testing
 
         print("Preparing data...")
