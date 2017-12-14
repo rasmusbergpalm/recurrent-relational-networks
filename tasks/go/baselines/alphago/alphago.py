@@ -110,8 +110,7 @@ class AlphaGo(Model):
 
     def val_batch(self):
         summaries, loss, step = self.session.run([self.summaries, self.loss, self.global_step], {self.is_training_ph: False})
-        if step % 1000 == 0:
-            self.test_writer.add_summary(summaries, step)
+        self.test_writer.add_summary(summaries, step)
         return loss
 
     def save(self, name):
