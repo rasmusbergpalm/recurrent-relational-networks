@@ -17,32 +17,36 @@ def get_devices():
         devices = gpus
     else:
         print("WARNING: No GPU's found. Using CPU")
-        devices = ['cpu:0','cpu:0']
+        devices = ['cpu:0']
 
     print("Using devices: ", devices)
     return devices
 
 
-def batch_parallel(fn, devices, **kwargs):
+def batch_parallel(fn, reduce, devices, **kwargs):
     """
     Parallelize fn across devices.
 
-    :param fn: Takes kwargs and returns a single tensor.
+    :param fn: Takes kwargs and returns a tuple of tensors
     :param devices: A list of devices to parallelize over
     :param kwargs: kwargs of input to fn, will be split along axis 0.
-    :return: The output of fn(kwargs) stacked on axis 0.
+    :return: The outputs of fn(kwargs) stacked on axis 0.
     """
     in_splits = {}
     for k, v in kwargs.items():
         in_splits[k] = tf.split(v, len(devices))
 
-    out_split = []
+    out_splits = {}
     for i, device in enumerate(devices):
         with tf.device(device):
             with tf.variable_scope(tf.get_variable_scope(), reuse=i > 0):
-                out_split.append(fn(**{k: v[i] for k, v in in_splits.items()}))
+                outs = fn(**{k: v[i] for k, v in in_splits.items()})
+                for j, out in enumerate(outs):
+                    if j not in out_splits:
+                        out_splits[j] = []
+                    out_splits[j].append(out)
 
-    return tf.stack(out_split, axis=0)
+    return [reduce(out_splits[i]) for i in range(len(out_splits))]
 
 
 def average_gradients(tower_grads, name='avg-grads'):

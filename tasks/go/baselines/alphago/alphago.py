@@ -57,15 +57,9 @@ class AlphaGo(Model):
 
             policy_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=actions, logits=policy_logits))
             value_loss = tf.losses.mean_squared_error(winners, value)
-            reg_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
-            loss = policy_loss + 0.01 * value_loss + reg_loss
-            tf.summary.scalar('losses/policy', policy_loss)
-            tf.summary.scalar('losses/value', value_loss)
-            tf.summary.scalar('losses/reg', reg_loss)
             acc = tf.reduce_mean(tf.to_float(tf.equal(actions, tf.argmax(policy_logits, axis=1, output_type=tf.int32))))
-            tf.summary.scalar('acc', acc)
 
-            return loss
+            return policy_loss, value_loss, acc
 
         planes, winners, actions = tf.cond(
             self.is_training_ph,
@@ -74,8 +68,16 @@ class AlphaGo(Model):
         )
 
         devices = util.get_devices()
-        self.loss = tf.reduce_mean(util.batch_parallel(forward, devices, planes=planes, winners=winners, actions=actions))
+        policy_loss, value_loss, acc = util.batch_parallel(forward, tf.reduce_mean, devices, planes=planes, winners=winners, actions=actions)
+
+        reg_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
+        self.loss = policy_loss + 0.01 * value_loss + reg_loss
+
         tf.summary.scalar('losses/total', self.loss)
+        tf.summary.scalar('losses/policy', policy_loss)
+        tf.summary.scalar('losses/value', value_loss)
+        tf.summary.scalar('losses/reg', reg_loss)
+        tf.summary.scalar('acc', acc)
 
         schedule = [
             (tf.greater(self.global_step, 700000), lambda: 0.00001),
