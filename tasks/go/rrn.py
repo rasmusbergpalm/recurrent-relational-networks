@@ -12,10 +12,10 @@ from tasks.go.data import file_splits, graph_encoded, positions, games
 
 
 class GoRecurrentRelationalNet(Model):
-    batch_size = 32
+    batch_size = 256
     emb_size = 16
-    n_steps = 8
-    n_hidden = 32
+    n_steps = 16
+    n_hidden = 64
     size = 19
 
     def __init__(self):
