@@ -110,9 +110,34 @@ def plane_encoded(positions):
         yield planes, winner, action
 
 
+def graph_encoded(positions):
+    for pos in positions:
+        stones = np.zeros((19, 19), dtype=np.int32)
+        for color, (row, column) in pos.states[-1]:
+            stones[row, column] = 1 if color == 'b' else 2
+
+        if pos.winner == 'b':
+            winner = 1.0
+        elif pos.winner == 'w':
+            winner = -1.0
+        else:
+            raise RuntimeError('Winner should be black or white')
+
+        color, rc = pos.move
+        if rc is None:
+            action = 19 * 19  # pass
+        else:
+            row, column = rc
+            action = row * 19 + column
+
+        color = ([0] if color == 'b' else [1]) * 19 ** 2
+
+        yield stones.reshape((19 ** 2,)), color, winner, action
+
+
 if __name__ == '__main__':
     start = time.time()
-    for i, sample in enumerate(plane_encoded(positions(games(sgf_files())))):
+    for i, sample in enumerate(graph_encoded(positions(games(sgf_files())))):
         if i % 1000 == 0:
             now = time.time()
             print(i / (now - start), "samples/s")
