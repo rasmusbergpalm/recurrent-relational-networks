@@ -64,6 +64,7 @@ class GoRecurrentRelationalNet(Model):
                     value_loss.append(tf.reduce_mean(tf.square(winners - value)))
 
                     policy_logits = tf.reshape(layers.fully_connected(x, num_outputs=1, activation_fn=None, scope='policy'), (-1, self.size ** 2))
+                    policy_logits = tf.concat([policy_logits, tf.zeros((tf.shape(policy_logits)[0], 1))], axis=1)
                     policy_loss.append(tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=actions, logits=policy_logits)))
                     acc.append(tf.reduce_mean(tf.to_float(tf.equal(actions, tf.argmax(policy_logits, axis=1, output_type=tf.int32)))))
                     tf.get_variable_scope().reuse_variables()
@@ -149,4 +150,5 @@ class GoRecurrentRelationalNet(Model):
 
 if __name__ == '__main__':
     m = GoRecurrentRelationalNet()
-    m.train_batch()
+    for i in range(10):
+        m.train_batch()
