@@ -23,14 +23,16 @@ def get_devices():
     return devices
 
 
-def batch_parallel(fn, reduce, devices, **kwargs):
+def batch_parallel(map_fn, reduce_fn, devices, **kwargs):
     """
-    Parallelize fn across devices.
+    Parallelize map_fn across devices.
 
-    :param fn: Takes kwargs and returns a tuple of tensors
+    :param map_fn: function that takes kwargs and returns a tuple of tensors
+    :param reduce_fn: function that reduces the outputs. Use `lambda x: x` to just get the outputs.
     :param devices: A list of devices to parallelize over
-    :param kwargs: kwargs of input to fn, will be split along axis 0.
-    :return: The outputs of fn(kwargs) stacked on axis 0.
+    :param kwargs: kwargs of input to map, will be split along axis 0.
+    :return: The outputs of map(kwargs) as a list of reduce_fn(list). The outer list is the number of outputs of map.
+    The inner list is the output from each device.
     """
     in_splits = {}
     for k, v in kwargs.items():
@@ -40,13 +42,13 @@ def batch_parallel(fn, reduce, devices, **kwargs):
     for i, device in enumerate(devices):
         with tf.device(device):
             with tf.variable_scope(tf.get_variable_scope(), reuse=i > 0):
-                outs = fn(**{k: v[i] for k, v in in_splits.items()})
+                outs = map_fn(**{k: v[i] for k, v in in_splits.items()})
                 for j, out in enumerate(outs):
                     if j not in out_splits:
                         out_splits[j] = []
                     out_splits[j].append(out)
 
-    return [reduce(out_splits[i]) for i in range(len(out_splits))]
+    return [reduce_fn(out_splits[i]) for i in range(len(out_splits))]
 
 
 def average_gradients(tower_grads, name='avg-grads'):
