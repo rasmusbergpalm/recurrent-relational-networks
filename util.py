@@ -17,10 +17,32 @@ def get_devices():
         devices = gpus
     else:
         print("WARNING: No GPU's found. Using CPU")
-        devices = ['cpu:0']
+        devices = ['cpu:0','cpu:0']
 
     print("Using devices: ", devices)
     return devices
+
+
+def batch_parallel(fn, devices, **kwargs):
+    """
+    Parallelize fn across devices.
+
+    :param fn: Takes kwargs and returns a single tensor.
+    :param devices: A list of devices to parallelize over
+    :param kwargs: kwargs of input to fn, will be split along axis 0.
+    :return: The output of fn(kwargs) stacked on axis 0.
+    """
+    in_splits = {}
+    for k, v in kwargs.items():
+        in_splits[k] = tf.split(v, len(devices))
+
+    out_split = []
+    for i, device in enumerate(devices):
+        with tf.device(device):
+            with tf.variable_scope(tf.get_variable_scope(), reuse=i > 0):
+                out_split.append(fn(**{k: v[i] for k, v in in_splits.items()}))
+
+    return tf.stack(out_split, axis=0)
 
 
 def average_gradients(tower_grads, name='avg-grads'):

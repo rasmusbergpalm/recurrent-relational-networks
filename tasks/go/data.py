@@ -57,11 +57,8 @@ def positions(sgf_games):
     for game in sgf_games:
         states = []
         winner = game.get_winner()
-        if winner is None:
-            if not game.get_komi().is_integer():  # Can't be a draw. Game must be weird. Skip it.
-                continue
-            else:  # Could be a draw
-                raise NotImplementedError("Can't handle draws.")
+        if winner is None:  # Very few games are actually draws. Most are in a weird state. We'll just skip them.
+            continue
 
         board = Board(19)
         board.apply_setup(*game.root.get_setup_stones())

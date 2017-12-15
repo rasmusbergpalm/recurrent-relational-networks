@@ -23,12 +23,6 @@ class AlphaGo(Model):
         train_iterator = self.iterator(train)
         valid_iterator = self.iterator(val)
 
-        planes, winners, actions = tf.cond(
-            self.is_training_ph,
-            true_fn=lambda: train_iterator.get_next(),
-            false_fn=lambda: valid_iterator.get_next()
-        )
-
         def conv_bn_relu(x, n_filters, kernel_size):
             x = layers.conv2d(x, n_filters, kernel_size, activation_fn=None, weights_regularizer=regularizer)
             x = layers.batch_norm(x)
@@ -41,37 +35,47 @@ class AlphaGo(Model):
             x = x + x0
             return tf.nn.relu(x)
 
-        with tf.variable_scope('first'):
-            x = conv_bn_relu(planes, self.n_hid, 3)
+        def forward(planes, winners, actions):
+            with tf.variable_scope('first'):
+                x = conv_bn_relu(planes, self.n_hid, 3)
 
-        for i in range(self.n_blocks):
-            with tf.variable_scope('block/%02d' % i):
-                x = residual_block(x)
-        res_out = x
+            for i in range(self.n_blocks):
+                with tf.variable_scope('block/%02d' % i):
+                    x = residual_block(x)
+            res_out = x
 
-        with tf.variable_scope('head/policy'):
-            x = conv_bn_relu(res_out, 2, 1)
-            x = tf.reshape(x, (self.batch_size, 19 * 19 * 2))
-            policy_logits = layers.fully_connected(x, 19 ** 2 + 1, activation_fn=None, weights_regularizer=regularizer)
+            with tf.variable_scope('head/policy'):
+                x = conv_bn_relu(res_out, 2, 1)
+                x = tf.reshape(x, (-1, 19 * 19 * 2))
+                policy_logits = layers.fully_connected(x, 19 ** 2 + 1, activation_fn=None, weights_regularizer=regularizer)
 
-        with tf.variable_scope('head/value'):
-            x = conv_bn_relu(res_out, 1, 1)
-            x = tf.reshape(x, (self.batch_size, 19 * 19))
-            x = layers.fully_connected(x, self.n_hid, weights_regularizer=regularizer)
-            value = tf.squeeze(layers.fully_connected(x, 1, activation_fn=tf.nn.tanh, weights_regularizer=regularizer))
+            with tf.variable_scope('head/value'):
+                x = conv_bn_relu(res_out, 1, 1)
+                x = tf.reshape(x, (-1, 19 * 19))
+                x = layers.fully_connected(x, self.n_hid, weights_regularizer=regularizer)
+                value = tf.squeeze(layers.fully_connected(x, 1, activation_fn=tf.nn.tanh, weights_regularizer=regularizer))
 
-        policy_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=actions, logits=policy_logits))
-        value_loss = tf.losses.mean_squared_error(winners, value)
-        reg_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
-        self.loss = policy_loss + 0.01 * value_loss + reg_loss
+            policy_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=actions, logits=policy_logits))
+            value_loss = tf.losses.mean_squared_error(winners, value)
+            reg_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
+            loss = policy_loss + 0.01 * value_loss + reg_loss
+            tf.summary.scalar('losses/policy', policy_loss)
+            tf.summary.scalar('losses/value', value_loss)
+            tf.summary.scalar('losses/reg', reg_loss)
+            acc = tf.reduce_mean(tf.to_float(tf.equal(actions, tf.argmax(policy_logits, axis=1, output_type=tf.int32))))
+            tf.summary.scalar('acc', acc)
 
-        tf.summary.scalar('losses/policy', policy_loss)
-        tf.summary.scalar('losses/value', value_loss)
-        tf.summary.scalar('losses/reg', reg_loss)
+            return loss
+
+        planes, winners, actions = tf.cond(
+            self.is_training_ph,
+            true_fn=lambda: train_iterator.get_next(),
+            false_fn=lambda: valid_iterator.get_next()
+        )
+
+        devices = util.get_devices()
+        self.loss = tf.reduce_mean(util.batch_parallel(forward, devices, planes=planes, winners=winners, actions=actions))
         tf.summary.scalar('losses/total', self.loss)
-
-        acc = tf.reduce_mean(tf.to_float(tf.equal(actions, tf.argmax(policy_logits, axis=1, output_type=tf.int32))))
-        tf.summary.scalar('acc', acc)
 
         schedule = [
             (tf.greater(self.global_step, 700000), lambda: 0.00001),
@@ -80,17 +84,13 @@ class AlphaGo(Model):
             (tf.greater(self.global_step, 200000), lambda: 0.01)
         ]
 
-        lr = tf.case(
-            schedule,
-            default=lambda: 0.01,
-            exclusive=True
-        )
+        lr = tf.case(schedule, default=lambda: 0.01, exclusive=True)
         tf.summary.scalar('lr', lr)
 
         self.optimizer = tf.train.MomentumOptimizer(learning_rate=lr, momentum=0.9, use_nesterov=True)
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
-            self.train_op = self.optimizer.minimize(self.loss, self.global_step)
+            self.train_op = self.optimizer.minimize(self.loss, self.global_step, colocate_gradients_with_ops=True)
 
         revision = os.environ.get('REVISION')
         message = os.environ.get('MESSAGE')
