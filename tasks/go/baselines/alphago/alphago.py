@@ -56,7 +56,7 @@ class AlphaGo(Model):
                 value = tf.squeeze(layers.fully_connected(x, 1, activation_fn=tf.nn.tanh, weights_regularizer=regularizer))
 
             policy_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=actions, logits=policy_logits))
-            value_loss = tf.losses.mean_squared_error(winners, value)
+            value_loss = tf.reduce_mean(tf.square(winners - value))
             acc = tf.reduce_mean(tf.to_float(tf.equal(actions, tf.argmax(policy_logits, axis=1, output_type=tf.int32))))
 
             return policy_loss, value_loss, acc
