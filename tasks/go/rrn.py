@@ -12,7 +12,8 @@ from tasks.go.data import file_splits, graph_encoded, positions, games
 
 
 class GoRecurrentRelationalNet(Model):
-    batch_size = 256
+    devices = util.get_devices()
+    batch_size = (256 // len(devices)) * len(devices)
     emb_size = 16
     n_steps = 32
     n_hidden = 64
@@ -23,16 +24,15 @@ class GoRecurrentRelationalNet(Model):
         train, val, test = file_splits()
         train_iterator = self.iterator(train)
         valid_iterator = self.iterator(val)
-        devices = util.get_devices()
 
         print("Building graph...")
         self.session = tf.Session()
         regularizer = layers.l2_regularizer(1e-4)
         edges = self.edges()
-        edge_indices = tf.constant([(i + (b * self.size ** 2), j + (b * self.size ** 2)) for b in range(self.batch_size // len(devices)) for i, j in edges], tf.int32)
+        edge_indices = tf.constant([(i + (b * self.size ** 2), j + (b * self.size ** 2)) for b in range(self.batch_size // len(self.devices)) for i, j in edges], tf.int32)
         n_edges = tf.shape(edge_indices)[0]
         edge_features = tf.zeros((n_edges, 1), tf.float32)
-        positions = tf.constant([[(i, j) for i in range(self.size) for j in range(self.size)] for b in range(self.batch_size // len(devices))], tf.int32)  # (bs, 361, 2)
+        positions = tf.constant([[(i, j) for i in range(self.size) for j in range(self.size)] for b in range(self.batch_size // len(self.devices))], tf.int32)  # (bs, 361, 2)
         rows = layers.embed_sequence(positions[:, :, 0], self.size, self.emb_size, scope='row-embeddings')  # bs, 361, emb_size
         cols = layers.embed_sequence(positions[:, :, 1], self.size, self.emb_size, scope='cols-embeddings')  # bs, 361, emb_size
 
@@ -80,7 +80,7 @@ class GoRecurrentRelationalNet(Model):
         def avg_n(x):
             return tf.reduce_mean(tf.stack(x, axis=0), axis=0)
 
-        policy_loss, value_loss, acc = util.batch_parallel(forward, avg_n, devices, stones=stones, player=player, winners=winners, actions=actions)  # n_steps
+        policy_loss, value_loss, acc = util.batch_parallel(forward, avg_n, self.devices, stones=stones, player=player, winners=winners, actions=actions)  # n_steps
 
         reg_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
         self.loss = tf.reduce_mean(policy_loss) + 0.01 * tf.reduce_mean(value_loss) + reg_loss
