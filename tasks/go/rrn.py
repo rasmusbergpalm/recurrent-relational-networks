@@ -15,7 +15,7 @@ class GoRecurrentRelationalNet(Model):
     devices = util.get_devices()
     batch_size = (256 // len(devices)) * len(devices)
     emb_size = 16
-    n_steps = 32
+    n_steps = 16
     n_hidden = 64
     size = 19
 
@@ -32,9 +32,9 @@ class GoRecurrentRelationalNet(Model):
         edge_indices = tf.constant([(i + (b * self.size ** 2), j + (b * self.size ** 2)) for b in range(self.batch_size // len(self.devices)) for i, j in edges], tf.int32)
         n_edges = tf.shape(edge_indices)[0]
         edge_features = tf.zeros((n_edges, 1), tf.float32)
-        positions = tf.constant([[(i, j) for i in range(self.size) for j in range(self.size)] for b in range(self.batch_size // len(self.devices))], tf.int32)  # (bs, 361, 2)
-        rows = layers.embed_sequence(positions[:, :, 0], self.size, self.emb_size, scope='row-embeddings')  # bs, 361, emb_size
-        cols = layers.embed_sequence(positions[:, :, 1], self.size, self.emb_size, scope='cols-embeddings')  # bs, 361, emb_size
+        positions = tf.constant([[(i, j) for i in range(self.size) for j in range(self.size)] + [(self.size, self.size)] for b in range(self.batch_size // len(self.devices))], tf.int32)  # (bs, 361+1, 2)
+        rows = layers.embed_sequence(positions[:, :, 0], self.size + 1, self.emb_size, scope='row-embeddings')  # bs, 361+1, emb_size
+        cols = layers.embed_sequence(positions[:, :, 1], self.size + 1, self.emb_size, scope='cols-embeddings')  # bs, 361+1, emb_size
 
         def mlp(x, scope):
             with tf.variable_scope(scope):
@@ -44,7 +44,13 @@ class GoRecurrentRelationalNet(Model):
 
         def forward(stones, player, winners, actions):
             n_player_embedding = 4
-            x = layers.embed_sequence(stones, 3, self.emb_size, scope='stone-embedding')  # bs, 361, emb_size
+
+            # Add the "master" node
+            bs = tf.shape(stones)[0]
+            stones = tf.concat([stones, 3 * tf.ones((bs, 1), dtype=tf.int32)], axis=1)
+            player = tf.concat([player, tf.reshape(player[:, -1], (bs, 1))], axis=1)
+
+            x = layers.embed_sequence(stones, 4, self.emb_size, scope='stone-embedding')  # bs, 361+1, emb_size
             player_emb = layers.embed_sequence(player, 2, embed_dim=n_player_embedding, scope='player-embedding')
             x = tf.concat([x, rows, cols, player_emb], axis=2)
             x = tf.reshape(x, (-1, 3 * self.emb_size + n_player_embedding))
@@ -60,11 +66,10 @@ class GoRecurrentRelationalNet(Model):
                     x = mlp(tf.concat([x, x0], axis=1), 'post-fn')
                     x, state = lstm_cell(x, state)
 
-                    value = tf.nn.tanh(tf.reduce_sum(tf.reshape(layers.fully_connected(x, num_outputs=1, activation_fn=None, scope='value'), (-1, self.size ** 2)), axis=1))
+                    value = tf.nn.tanh(tf.reduce_sum(tf.reshape(layers.fully_connected(x, num_outputs=1, activation_fn=None, scope='value'), (-1, self.size ** 2 + 1)), axis=1))
                     value_loss.append(tf.reduce_mean(tf.square(winners - value)))
 
-                    policy_logits = tf.reshape(layers.fully_connected(x, num_outputs=1, activation_fn=None, scope='policy'), (-1, self.size ** 2))
-                    policy_logits = tf.concat([policy_logits, tf.zeros((tf.shape(policy_logits)[0], 1))], axis=1)
+                    policy_logits = tf.reshape(layers.fully_connected(x, num_outputs=1, activation_fn=None, scope='policy'), (-1, self.size ** 2 + 1))
                     policy_loss.append(tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=actions, logits=policy_logits)))
                     acc.append(tf.reduce_mean(tf.to_float(tf.equal(actions, tf.argmax(policy_logits, axis=1, output_type=tf.int32)))))
                     tf.get_variable_scope().reuse_variables()
@@ -113,10 +118,13 @@ class GoRecurrentRelationalNet(Model):
         idx = np.arange(self.size ** 2).reshape(self.size, self.size)
         for r in range(self.size):
             for c in range(self.size):
+                edges.append((idx[r, c], self.size ** 2 + 1))
+
                 if r + 1 < self.size:
                     edges.append((idx[r, c], idx[r + 1, c]))
                 if c + 1 < self.size:
                     edges.append((idx[r, c], idx[r, c + 1]))
+
         edges += [(j, i) for i, j in edges]
         return edges
 
@@ -150,5 +158,4 @@ class GoRecurrentRelationalNet(Model):
 
 if __name__ == '__main__':
     m = GoRecurrentRelationalNet()
-    for i in range(10):
-        m.train_batch()
+    m.train_batch()
