@@ -16,8 +16,8 @@ class GoRecurrentRelationalNet(Model):
     devices = util.get_devices()
     batch_size = (256 // len(devices)) * len(devices)
     emb_size = 16
-    n_steps = 16
-    n_hidden = 64
+    n_steps = 8
+    n_hidden = 128
     size = 19
     n_nodes = size ** 2
 
