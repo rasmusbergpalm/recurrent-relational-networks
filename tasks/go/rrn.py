@@ -31,9 +31,11 @@ class GoRecurrentRelationalNet(Model):
         self.session = tf.Session()
         regularizer = layers.l2_regularizer(1e-4)
         edges = self.edges()
+        n_graphs = self.batch_size // len(self.devices)
 
         edge_indices, edge_features = self.batch_edges(self.n_nodes, edges)
-        positions = tf.constant([[(i, j) for i in range(self.size) for j in range(self.size)] for b in range(self.batch_size // len(self.devices))], tf.int32)  # (bs, 361, 2)
+        positions = tf.constant([[(i, j) for i in range(self.size) for j in range(self.size)] for b in range(n_graphs)], tf.int32)  # (bs, 361, 2)
+        graph_indices = tf.reshape(tf.constant([[i] * self.n_nodes for i in range(n_graphs)]), (-1,))
         rows = layers.embed_sequence(positions[:, :, 0], self.size, self.emb_size, scope='row-embeddings')  # bs, 361, emb_size
         cols = layers.embed_sequence(positions[:, :, 1], self.size, self.emb_size, scope='cols-embeddings')  # bs, 361, emb_size
 
@@ -53,13 +55,28 @@ class GoRecurrentRelationalNet(Model):
             x0 = x
 
             policy_loss, value_loss, acc = [], [], []
-            lstm_cell = LSTMCell(self.n_hidden)
-            state = lstm_cell.zero_state(tf.shape(x)[0], tf.float32)
+            node_lstm_cell = LSTMCell(self.n_hidden)
+            master_lstm_cell = LSTMCell(self.n_hidden)
+            n_nodes = tf.shape(x)[0]
+            node_states = node_lstm_cell.zero_state(n_nodes, tf.float32)
+
+            master_nodes = tf.zeros((n_graphs, self.n_hidden))
+            master_states = master_lstm_cell.zero_state(n_graphs, tf.float32)
             with tf.variable_scope('steps'):
                 for step in range(self.n_steps):
-                    x = message_passing(x, edge_indices, edge_features, lambda x: mlp(x, 'message-fn'))
-                    x = mlp(tf.concat([x, x0], axis=1), 'post-fn')
-                    x, state = lstm_cell(x, state)
+                    m = tf.gather(master_nodes, graph_indices)
+                    xm = tf.concat([x, m], axis=1)
+                    n2m = mlp(tf.segment_sum(mlp(xm, 'nodes-to-master'), graph_indices), 'master-post')
+                    m2n = mlp(xm, 'master-to-nodes')
+
+                    z = message_passing(x, edge_indices, edge_features, lambda x: mlp(x, 'node-to-node'))
+                    z = mlp(tf.concat([z, x0, m2n], axis=1), 'node-post')
+
+                    # UPDATE
+                    with tf.variable_scope('nodes'):
+                        x, node_states = node_lstm_cell(z, node_states)
+                    with tf.variable_scope('master'):
+                        master_nodes, master_states = master_lstm_cell(n2m, master_states)
 
                     value = tf.nn.tanh(tf.reduce_sum(tf.reshape(layers.fully_connected(x, num_outputs=1, activation_fn=None, scope='value'), (-1, self.n_nodes)), axis=1))
                     value_loss.append(tf.reduce_mean(tf.square(winners - value)))
