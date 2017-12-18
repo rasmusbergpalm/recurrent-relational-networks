@@ -9,6 +9,7 @@ import util
 from message_passing import message_passing
 from model import Model
 from tasks.go.data import file_splits, graph_encoded, positions, games
+import networkx as nx
 
 
 class GoRecurrentRelationalNet(Model):
@@ -30,7 +31,11 @@ class GoRecurrentRelationalNet(Model):
         self.session = tf.Session()
         regularizer = layers.l2_regularizer(1e-4)
         edges = self.edges()
-        edge_indices = tf.constant([(i + (b * n_nodes), j + (b * n_nodes)) for b in range(self.batch_size // len(self.devices)) for i, j in edges], tf.int32)
+        edge_indices = [(i + (b * n_nodes), j + (b * n_nodes)) for b in range(self.batch_size // len(self.devices)) for i, j in edges]
+
+        assert len(list(nx.connected_component_subgraphs(nx.Graph(edge_indices)))) == self.batch_size // len(self.devices)
+
+        edge_indices = tf.constant(edge_indices, tf.int32)
         n_edges = tf.shape(edge_indices)[0]
         edge_features = tf.zeros((n_edges, 1), tf.float32)
         positions = tf.constant([[(i, j) for i in range(self.size) for j in range(self.size)] + [(self.size, self.size)] for b in range(self.batch_size // len(self.devices))], tf.int32)  # (bs, 361+1, 2)
