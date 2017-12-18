@@ -24,12 +24,13 @@ class GoRecurrentRelationalNet(Model):
         train, val, test = file_splits()
         train_iterator = self.iterator(train)
         valid_iterator = self.iterator(val)
+        n_nodes = (self.size ** 2 + 1)
 
         print("Building graph...")
         self.session = tf.Session()
         regularizer = layers.l2_regularizer(1e-4)
         edges = self.edges()
-        edge_indices = tf.constant([(i + (b * self.size ** 2), j + (b * self.size ** 2)) for b in range(self.batch_size // len(self.devices)) for i, j in edges], tf.int32)
+        edge_indices = tf.constant([(i + (b * n_nodes), j + (b * n_nodes)) for b in range(self.batch_size // len(self.devices)) for i, j in edges], tf.int32)
         n_edges = tf.shape(edge_indices)[0]
         edge_features = tf.zeros((n_edges, 1), tf.float32)
         positions = tf.constant([[(i, j) for i in range(self.size) for j in range(self.size)] + [(self.size, self.size)] for b in range(self.batch_size // len(self.devices))], tf.int32)  # (bs, 361+1, 2)
@@ -66,10 +67,10 @@ class GoRecurrentRelationalNet(Model):
                     x = mlp(tf.concat([x, x0], axis=1), 'post-fn')
                     x, state = lstm_cell(x, state)
 
-                    value = tf.nn.tanh(tf.reduce_sum(tf.reshape(layers.fully_connected(x, num_outputs=1, activation_fn=None, scope='value'), (-1, self.size ** 2 + 1)), axis=1))
+                    value = tf.nn.tanh(tf.reduce_sum(tf.reshape(layers.fully_connected(x, num_outputs=1, activation_fn=None, scope='value'), (-1, n_nodes)), axis=1))
                     value_loss.append(tf.reduce_mean(tf.square(winners - value)))
 
-                    policy_logits = tf.reshape(layers.fully_connected(x, num_outputs=1, activation_fn=None, scope='policy'), (-1, self.size ** 2 + 1))
+                    policy_logits = tf.reshape(layers.fully_connected(x, num_outputs=1, activation_fn=None, scope='policy'), (-1, n_nodes))
                     policy_loss.append(tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=actions, logits=policy_logits)))
                     acc.append(tf.reduce_mean(tf.to_float(tf.equal(actions, tf.argmax(policy_logits, axis=1, output_type=tf.int32)))))
                     tf.get_variable_scope().reuse_variables()
@@ -118,7 +119,7 @@ class GoRecurrentRelationalNet(Model):
         idx = np.arange(self.size ** 2).reshape(self.size, self.size)
         for r in range(self.size):
             for c in range(self.size):
-                edges.append((idx[r, c], self.size ** 2 + 1))
+                edges.append((idx[r, c], self.size ** 2))
 
                 if r + 1 < self.size:
                     edges.append((idx[r, c], idx[r + 1, c]))
