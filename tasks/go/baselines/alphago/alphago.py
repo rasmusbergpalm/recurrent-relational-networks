@@ -129,7 +129,7 @@ class AlphaGo(Model):
         return tf.data.Dataset.from_generator(
             lambda: plane_encoded(positions(games(files))),
             (tf.float32, tf.float32, tf.int32),
-            ((19, 19, 17), (), ())  # planes, winner, action
+            ((19, 19, 3), (), ())  # planes, winner, action
         ).repeat(-1).prefetch(100 * self.batch_size).shuffle(100 * self.batch_size).batch(self.batch_size).make_one_shot_iterator()
 
 
