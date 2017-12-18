@@ -75,9 +75,10 @@ def positions(sgf_games):
 
 def plane_encoded(positions):
     for pos in positions:
-        black = np.zeros((19, 19, 8), dtype=np.float32)
-        white = np.zeros((19, 19, 8), dtype=np.float32)
-        for i, state in enumerate(reversed(pos.states[-8:])):
+        n_history = 1
+        black = np.zeros((19, 19, n_history), dtype=np.float32)
+        white = np.zeros((19, 19, n_history), dtype=np.float32)
+        for i, state in enumerate(reversed(pos.states[-n_history:])):
             for color, (row, column) in state:
                 if color == 'b':
                     black[row, column, i] = 1.0
