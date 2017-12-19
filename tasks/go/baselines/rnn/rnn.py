@@ -9,10 +9,10 @@ from tensorflow.contrib.rnn import LSTMCell, MultiRNNCell
 
 
 class RNN(Model):
-    n_layers = 1
+    n_layers = 4
     n_hid = 128
     devices = util.get_devices()
-    batch_size = 4 // len(devices) * len(devices)
+    batch_size = 32 // len(devices) * len(devices)
     size = 19
 
     def __init__(self):
