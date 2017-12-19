@@ -20,7 +20,7 @@ class RNN(Model):
         tensorboard_dir = os.environ.get('TENSORBOARD_DIR') or '/tmp/tensorboard'
         self.global_step = tf.Variable(0, trainable=False)
 
-        self.session = tf.Session()
+        self.session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False))
         train, val, test = file_splits()
         train_iterator = self.iterator(train)
         valid_iterator = self.iterator(val)
@@ -33,7 +33,7 @@ class RNN(Model):
             outputs, _ = tf.nn.dynamic_rnn(multi_cell, states, initial_state=multi_cell.zero_state(self.batch_size // len(self.devices), tf.float32))
 
             policy_logits = layers.fully_connected(outputs, self.size ** 2 + 1, activation_fn=None)
-            winners = layers.fully_connected(outputs, 2, activation_fn=tf.nn.tanh)
+            winners = layers.fully_connected(outputs, 1, activation_fn=tf.nn.tanh)
 
             policy_loss = tf.reduce_sum(mask * tf.nn.sparse_softmax_cross_entropy_with_logits(labels=moves, logits=policy_logits)) / n_mask
             value_loss = tf.reduce_sum(mask * tf.square(winners[:, :, 0] - values)) / n_mask
