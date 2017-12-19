@@ -49,8 +49,54 @@ def games(sgf_files):
     for sgf_fn in sgf_files:
         with open(sgf_fn) as fp:
             sgf = Sgf_game.from_string(fp.read())
-            if sgf.get_size() == 19:
+            if sgf.get_size() == 19 and len(sgf.get_main_sequence()) > 10:
                 yield sgf
+
+
+def rnn_encoded(sgf_games):
+    def encode_state(state, player):
+        board = np.zeros((19, 19), dtype=np.float32)
+        for color, (row, column) in state:
+            board[row, column] = 1. if color == 'b' else -1.
+        if player == 'w':
+            board = -board
+
+        return board.reshape((19 ** 2,))
+
+    def encode_move(move):
+        color, rc = move
+        if rc is None:
+            return 19 * 19  # pass
+        else:
+            row, column = rc
+            return row * 19 + column
+
+    for game in sgf_games:
+        states = []
+        moves = []
+        values = []
+
+        winner = game.get_winner()
+        if winner is None:  # Very few games are actually draws. Most are in a weird state. We'll just skip them.
+            continue
+
+        board = Board(19)
+        board.apply_setup(*game.root.get_setup_stones())
+        seq = game.get_main_sequence()
+        for move in seq[1:]:  # first move is weird root node
+            move = move.get_move()
+            moves.append(encode_move(move))
+            player, rc = move
+            states.append(encode_state(board.list_occupied_points(), player))
+            if winner == player:
+                values.append(1.)
+            else:
+                values.append(-1.)
+            if rc is not None:  # not a pass
+                (row, column) = rc
+                board.play(row, column, player)
+
+        yield np.array(states, dtype=np.float32), np.array(moves, dtype=np.int32), np.array(values, dtype=np.int32)
 
 
 def positions(sgf_games):
@@ -138,7 +184,8 @@ def graph_encoded(positions):
 
 if __name__ == '__main__':
     start = time.time()
-    for i, sample in enumerate(graph_encoded(positions(games(sgf_files())))):
+    for i, sample in enumerate(rnn_encoded(games(sgf_files()))):
+        print([s.shape for s in sample])
         if i % 1000 == 0:
             now = time.time()
             print(i / (now - start), "samples/s")
