@@ -27,16 +27,19 @@ class RNN(Model):
 
         def forward(states, moves, values):
             mask = tf.to_float(tf.not_equal(values, -9.))
+            bs = tf.shape(mask)[0]
+            seq = tf.shape(mask)[1]
             n_mask = tf.reduce_sum(mask)
 
             multi_cell = MultiRNNCell([LSTMCell(self.n_hid) for i in range(self.n_layers)])
             outputs, _ = tf.nn.dynamic_rnn(multi_cell, states, initial_state=multi_cell.zero_state(self.batch_size // len(self.devices), tf.float32))
+            outputs = tf.reshape(outputs, (-1, self.n_hid))
 
             policy_logits = layers.fully_connected(outputs, self.size ** 2 + 1, activation_fn=None)
             winners = layers.fully_connected(outputs, 1, activation_fn=tf.nn.tanh)
 
-            policy_loss = tf.reduce_sum(mask * tf.nn.sparse_softmax_cross_entropy_with_logits(labels=moves, logits=policy_logits)) / n_mask
-            value_loss = tf.reduce_sum(mask * tf.square(winners[:, :, 0] - values)) / n_mask
+            policy_loss = tf.reduce_sum(mask * tf.nn.sparse_softmax_cross_entropy_with_logits(labels=moves, logits=tf.reshape(policy_logits, (bs, seq, self.size ** 2 + 1)))) / n_mask
+            value_loss = tf.reduce_sum(mask * tf.square(tf.reshape(winners[:, :], (bs, seq)) - values)) / n_mask
             acc = tf.reduce_mean(tf.to_float(tf.equal(moves, tf.argmax(policy_logits, axis=2, output_type=tf.int32))))
 
             return policy_loss, value_loss, acc
