@@ -26,7 +26,7 @@ class RNN(Model):
         valid_iterator = self.iterator(val)
 
         def forward(states, moves, values):
-            mask = tf.not_equal(values, -9.).to_float()
+            mask = tf.to_float(tf.not_equal(values, -9.))
             n_mask = tf.reduce_sum(mask)
 
             multi_cell = MultiRNNCell([LSTMCell(self.n_hid) for i in range(self.n_layers)])
