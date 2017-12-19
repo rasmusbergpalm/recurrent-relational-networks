@@ -12,7 +12,7 @@ class RNN(Model):
     n_layers = 8
     n_hid = 256
     devices = util.get_devices()
-    batch_size = 256 // len(devices) * len(devices)
+    batch_size = 64 // len(devices) * len(devices)
     size = 19
 
     def __init__(self):
