@@ -9,10 +9,10 @@ from tensorflow.contrib.rnn import LSTMCell, MultiRNNCell
 
 
 class RNN(Model):
-    n_layers = 8
-    n_hid = 256
+    n_layers = 2
+    n_hid = 128
     devices = util.get_devices()
-    batch_size = 64 // len(devices) * len(devices)
+    batch_size = 16 // len(devices) * len(devices)
     size = 19
 
     def __init__(self):
@@ -73,7 +73,7 @@ class RNN(Model):
 
     def train_batch(self):
         _, summaries, loss, step = self.session.run([self.train_op, self.summaries, self.loss, self.global_step], {self.is_training_ph: True})
-        if step % 1000 == 0:
+        if step % 10 == 0:
             self.train_writer.add_summary(summaries, step)
             self.train_writer.flush()
         return loss
@@ -96,7 +96,7 @@ class RNN(Model):
         return tf.data.Dataset.from_generator(
             lambda: rnn_encoded(games(files)),
             (tf.float32, tf.int32, tf.float32)  # states, moves, values
-        ).repeat(-1).prefetch(100 * self.batch_size).shuffle(100 * self.batch_size).padded_batch(self.batch_size, padded_shapes=((None, 19 ** 2), (None,), (None,)), padding_values=(0., 0, -9.)).make_one_shot_iterator()
+        ).repeat(-1).shuffle(100 * self.batch_size).padded_batch(self.batch_size, padded_shapes=((None, 19 ** 2), (None,), (None,)), padding_values=(0., 0, -9.)).prefetch(3).make_one_shot_iterator()
 
 
 if __name__ == '__main__':
