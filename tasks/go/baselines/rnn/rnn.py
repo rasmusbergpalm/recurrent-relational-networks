@@ -9,10 +9,10 @@ from tensorflow.contrib.rnn import LSTMCell, MultiRNNCell
 
 
 class RNN(Model):
-    n_layers = 2
-    n_hid = 128
+    n_layers = 1
+    n_hid = 16
     devices = util.get_devices()
-    batch_size = 16 // len(devices) * len(devices)
+    batch_size = 1 // len(devices) * len(devices)
     size = 19
 
     def __init__(self):
@@ -20,7 +20,7 @@ class RNN(Model):
         tensorboard_dir = os.environ.get('TENSORBOARD_DIR') or '/tmp/tensorboard'
         self.global_step = tf.Variable(0, trainable=False)
 
-        self.session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False))
+        self.session = tf.Session()
         train, val, test = file_splits()
         train_iterator = self.iterator(train)
         valid_iterator = self.iterator(val)
