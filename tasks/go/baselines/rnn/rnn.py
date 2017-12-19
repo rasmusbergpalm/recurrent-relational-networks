@@ -26,14 +26,17 @@ class RNN(Model):
         valid_iterator = self.iterator(val)
 
         def forward(states, moves, values):
+            mask = tf.not_equal(values, -9.).to_float()
+            n_mask = tf.reduce_sum(mask)
+
             multi_cell = MultiRNNCell([LSTMCell(self.n_hid) for i in range(self.n_layers)])
             outputs, _ = tf.nn.dynamic_rnn(multi_cell, states, initial_state=multi_cell.zero_state(self.batch_size // len(self.devices), tf.float32))
 
             policy_logits = layers.fully_connected(outputs, self.size ** 2 + 1, activation_fn=None)
             winners = tf.squeeze(layers.fully_connected(outputs, 1, activation_fn=tf.nn.tanh))
 
-            policy_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=moves, logits=policy_logits))
-            value_loss = tf.reduce_mean(tf.square(winners - values))
+            policy_loss = tf.reduce_sum(mask * tf.nn.sparse_softmax_cross_entropy_with_logits(labels=moves, logits=policy_logits)) / n_mask
+            value_loss = tf.reduce_sum(mask * tf.square(winners - values)) / n_mask
             acc = tf.reduce_mean(tf.to_float(tf.equal(moves, tf.argmax(policy_logits, axis=2, output_type=tf.int32))))
 
             return policy_loss, value_loss, acc
@@ -44,7 +47,7 @@ class RNN(Model):
             false_fn=lambda: valid_iterator.get_next()
         )
 
-        policy_loss, value_loss, acc = util.batch_parallel(forward, tf.reduce_mean, devices, states=states, moves=moves, values=values)
+        policy_loss, value_loss, acc = util.batch_parallel(forward, tf.reduce_mean, self.devices, states=states, moves=moves, values=values)
 
         reg_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
         self.loss = policy_loss + 0.01 * value_loss + reg_loss
@@ -93,7 +96,7 @@ class RNN(Model):
         return tf.data.Dataset.from_generator(
             lambda: rnn_encoded(games(files)),
             (tf.float32, tf.int32, tf.float32)  # states, moves, values
-        ).repeat(-1).prefetch(100 * self.batch_size).shuffle(100 * self.batch_size).padded_batch(self.batch_size, padded_shapes=((None, 19 ** 2), (None,), (None,))).make_one_shot_iterator()
+        ).repeat(-1).prefetch(100 * self.batch_size).shuffle(100 * self.batch_size).padded_batch(self.batch_size, padded_shapes=((None, 19 ** 2), (None,), (None,)), padding_values=(0., 0, -9.)).make_one_shot_iterator()
 
 
 if __name__ == '__main__':
