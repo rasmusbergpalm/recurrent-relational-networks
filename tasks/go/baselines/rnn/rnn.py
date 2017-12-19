@@ -10,9 +10,9 @@ from tensorflow.contrib.rnn import LSTMCell, MultiRNNCell
 
 class RNN(Model):
     n_layers = 1
-    n_hid = 16
+    n_hid = 128
     devices = util.get_devices()
-    batch_size = 1 // len(devices) * len(devices)
+    batch_size = 4 // len(devices) * len(devices)
     size = 19
 
     def __init__(self):
@@ -76,7 +76,7 @@ class RNN(Model):
 
     def train_batch(self):
         _, summaries, loss, step = self.session.run([self.train_op, self.summaries, self.loss, self.global_step], {self.is_training_ph: True})
-        if step % 1 == 0:
+        if step % 10 == 0:
             self.train_writer.add_summary(summaries, step)
             self.train_writer.flush()
         return loss
