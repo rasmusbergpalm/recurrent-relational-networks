@@ -20,7 +20,7 @@ def sgf_files():
     tgz_fname = data_dir + '/kgs-all-raw.tgz'
     dir = data_dir + '/all'
 
-    if not os.path.exists(dir):
+    if not os.path.exists(dir) or not os.listdir(dir):
         print("Downloading data...")
         urllib.request.urlretrieve(raw_url, tgz_fname)
 
