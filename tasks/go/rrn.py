@@ -17,7 +17,7 @@ class GoRecurrentRelationalNet(Model):
     batch_size = (256 // len(devices)) * len(devices)
     emb_size = 16
     n_steps = 8
-    n_hidden = 512
+    n_hidden = 128
     size = 19
     n_nodes = size ** 2
 
@@ -119,12 +119,17 @@ class GoRecurrentRelationalNet(Model):
     def edges(self):
         edges = []
         idx = np.arange(self.n_nodes).reshape(self.size, self.size)
+
+        def safe_append(fr, fc, tr, tc):
+            if 0 <= tr < self.size and 0 <= tc < self.size:
+                edges.append((idx[fr, fc], idx[tr, tc]))
+
         for r in range(self.size):
             for c in range(self.size):
-                if r + 1 < self.size:
-                    edges.append((idx[r, c], idx[r + 1, c]))
-                if c + 1 < self.size:
-                    edges.append((idx[r, c], idx[r, c + 1]))
+                safe_append(r, c, r + 1, c)
+                safe_append(r, c, r, c + 1)
+                safe_append(r, c, r + 1, c + 1)
+                safe_append(r, c, r + 1, c - 1)
         edges += [(j, i) for i, j in edges]
         return edges
 
