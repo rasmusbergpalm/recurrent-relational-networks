@@ -171,8 +171,10 @@ class BaBiRecurrentRelationalNet(Model):
             self.saver = tf.train.Saver()
             util.print_vars(tf.trainable_variables())
 
-            self.train_writer = tf.summary.FileWriter('/tmp/tensorboard/bAbI/%s/train/%s' % (self.revision, self.name), self.session.graph)
-            self.test_writer = tf.summary.FileWriter('/tmp/tensorboard/bAbI/%s/test/%s' % (self.revision, self.name), self.session.graph)
+            tensorboard_dir = os.environ.get('TENSORBOARD_DIR') or '/tmp/tensorboard'
+
+            self.train_writer = tf.summary.FileWriter(tensorboard_dir + '/bAbI/%s/train/%s' % (self.revision, self.name), self.session.graph)
+            self.test_writer = tf.summary.FileWriter(tensorboard_dir + '/bAbI/%s/test/%s' % (self.revision, self.name), self.session.graph)
 
             self.summaries = tf.summary.merge_all()
 
