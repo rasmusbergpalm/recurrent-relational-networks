@@ -4,7 +4,7 @@ from model import Model
 
 
 def train(model: Model):
-    n_updates = 10000000
+    n_updates = 500000
     val_interval = 1000
 
     start = time.time()

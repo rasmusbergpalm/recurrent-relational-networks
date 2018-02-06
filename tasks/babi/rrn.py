@@ -18,6 +18,7 @@ from tasks.babi.data import bAbI
 
 
 class BaBiRecurrentRelationalNet(Model):
+    number = 1
     devices = util.get_devices()
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
@@ -301,8 +302,9 @@ class BaBiRecurrentRelationalNet(Model):
         self.saver.restore(self.session, name)
 
     def train_batch(self):
-        _, _loss, _logits, _answers, _indices, _summaries, _step, _train_qsize = self.session.run([self.train_step, self.loss, self.out, self.answers, self.task_indices, self.summaries, self.global_step, self.train_qsize_op], {self.is_training_ph: True})
+        _, _loss, _step = self.session.run([self.train_step, self.loss, self.global_step], {self.is_training_ph: True})
         if _step % 1000 == 0:
+            _, _loss, _logits, _answers, _indices, _summaries, _step, _train_qsize = self.session.run([self.train_step, self.loss, self.out, self.answers, self.task_indices, self.summaries, self.global_step, self.train_qsize_op], {self.is_training_ph: True})
             self._eval(self.train_writer, _answers, _indices, _logits, _summaries, _step)
 
         return _loss
