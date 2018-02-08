@@ -18,16 +18,15 @@ from tasks.babi.data import bAbI
 
 
 class BaBiRecurrentRelationalNet(Model):
-    number = 8
     devices = util.get_devices()
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     name = "%s %s" % (revision, message)
     emb_size = 32
-    batch_size = 160
+    batch_size = 512
     num_facts = 20
     qsize = len(devices) * 100
-    n_steps = 5
+    n_steps = 1
     edge_keep_prob = 1.0
     n_hidden = 128
 
