@@ -3,7 +3,7 @@ import numpy as np
 
 from tasks.babi.rrn import BaBiRecurrentRelationalNet
 
-model_dir = '/home/rapal/runs/9c60462/'
+model_dir = '/home/rapal/runs/8c306fd/'
 n_steps = BaBiRecurrentRelationalNet.n_steps
 
 eval_fname = model_dir + '%d-eval.npz' % n_steps
@@ -26,4 +26,4 @@ for i in range(20):
     expected = answers[idx]
     actual = np.argmax(logits[-1, idx, :], axis=1)
     acc = np.mean(expected == actual)
-    print("task %d acc %f" % (i + 1, acc))
+    print(acc)
