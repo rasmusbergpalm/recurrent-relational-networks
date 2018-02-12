@@ -18,7 +18,7 @@ from tasks.babi.data import bAbI
 
 
 class BaBiRecurrentRelationalNet(Model):
-    number = 15
+    number = 16
     devices = util.get_devices()
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
