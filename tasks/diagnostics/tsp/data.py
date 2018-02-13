@@ -5,12 +5,21 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import time
 
+import tensorflow as tf
 import numpy as np
 
 
 class TSP:
-    n = 10
     n_fixed = 2
+
+    def __init__(self, n):
+        self.n = n
+
+    def output_types(self):
+        return tf.float32, tf.int32, tf.int32, tf.int32
+
+    def output_shapes(self):
+        return (self.n, 2), (self.n,), (self.n,), (self.n,)
 
     def brute(self, cities, n_fixed):
         def calc_length(cities, path):
@@ -43,15 +52,15 @@ class TSP:
             min_path, min_length = self.brute(cities, 2)
             targets = list({j: i for i, j in enumerate(min_path)}.values())
 
-            yield cities, number_feature, targets, min_path, min_length
+            yield cities, number_feature, targets, min_path
 
 
 if __name__ == '__main__':
-    d = TSP()
+    d = TSP(7)
     start = time.perf_counter()
     gen = d.sample_generator()
     for i in range(10):
-        c, f, t, p, l = next(gen)
+        c, f, t, p = next(gen)
     print((i + 1) / (time.perf_counter() - start), "Hz")
 
     print(p, t)

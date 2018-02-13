@@ -8,10 +8,11 @@ from tasks.diagnostics.greedy.data import Greedy
 from tensorflow.contrib import layers
 from tensorflow.contrib.rnn import LSTMCell
 import util
+from tasks.diagnostics.tsp.data import TSP
 
 
 class GreedyRRN(Model):
-    n = 19
+    n = 7
     batch_size = 32
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
@@ -27,7 +28,7 @@ class GreedyRRN(Model):
         self.global_step = tf.Variable(initial_value=0, trainable=False)
         self.optimizer = tf.train.AdamOptimizer()
 
-        iterator = self._iterator(Greedy(self.n))
+        iterator = self._iterator(TSP(self.n))
         edges = [(i, j) for i in range(self.n) for j in range(self.n)]
         edges = tf.constant([(i + (b * self.n), j + (b * self.n)) for b in range(self.batch_size) for i, j in edges], tf.int32)
         edge_features = tf.zeros((tf.shape(edges)[0], 1))

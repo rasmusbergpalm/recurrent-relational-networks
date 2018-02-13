@@ -7,6 +7,7 @@ import time
 
 import numpy as np
 import tensorflow as tf
+from scipy.spatial.distance import pdist, squareform
 
 
 class Greedy:
@@ -51,10 +52,12 @@ def plot_path(cities, path):
     plt.xlim([0, 1])
     plt.ylim([0, 1])
     plt.savefig('out.png')
+    plt.close()
 
 
 if __name__ == '__main__':
-    d = Greedy(19)
+    n = 5
+    d = Greedy(n)
     start = time.perf_counter()
     gen = d.sample_generator()
     for i in range(10):
@@ -63,3 +66,9 @@ if __name__ == '__main__':
 
     print(p, t)
     plot_path(c, p)
+    X = squareform(pdist(c))
+    d0 = zip(X[0, :].tolist(), range(n))
+    print([i for d, i in sorted(d0, key=lambda x: x[0])])
+    plt.imshow(X)
+    plt.savefig('dist.png')
+    plt.close()
