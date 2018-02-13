@@ -54,7 +54,7 @@ def plot_path(cities, path):
 
 
 if __name__ == '__main__':
-    d = Greedy(8)
+    d = Greedy(19)
     start = time.perf_counter()
     gen = d.sample_generator()
     for i in range(10):
