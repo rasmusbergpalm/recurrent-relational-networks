@@ -92,6 +92,7 @@ class GreedyRRN(Model):
         loss, summaries, step = self.session.run([self.loss, self.summaries, self.global_step])
         self.test_writer.add_summary(summaries, step)
         self.test_writer.flush()
+        return loss
 
     def save(self, name):
         self.saver.save(self.session, name)
