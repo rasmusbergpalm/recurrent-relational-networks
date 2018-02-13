@@ -11,7 +11,7 @@ import util
 
 
 class GreedyRRN(Model):
-    n = 9
+    n = 19
     batch_size = 32
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
