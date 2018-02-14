@@ -18,11 +18,11 @@ import matplotlib.pyplot as plt
 
 
 class GreedyRRN(Model):
-    n = 19
+    n = 16
     batch_size = 32
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
-    n_steps = 8
+    n_steps = 16
     n_hidden = 32
 
     def __init__(self):
