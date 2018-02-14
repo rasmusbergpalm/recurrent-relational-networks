@@ -92,7 +92,7 @@ class TSP:
             number_feature = np.arange(self.n)
             cities = np.random.uniform(size=(self.n, 2))
             path, min_length = self.brute(cities, self.n_fixed)
-            targets = list({j: i for i, j in enumerate(path)}.values())
+            targets = switch_targets_paths(path)
 
             yield cities, number_feature, targets, path
 
