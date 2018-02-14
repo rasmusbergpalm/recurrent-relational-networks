@@ -76,7 +76,7 @@ class DiagnosticRRN(Model):
                 tf.summary.scalar('steps/%d/loss' % step, loss)
                 tf.get_variable_scope().reuse_variables()
 
-        self.loss = tf.reduce_mean(losses)
+        self.loss = losses[-1]  # tf.reduce_mean(losses)
         tf.summary.scalar('loss', self.loss)
 
         optimizer = tf.train.AdamOptimizer()
