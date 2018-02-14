@@ -56,7 +56,7 @@ class TSP:
 
 
 if __name__ == '__main__':
-    d = TSP(7)
+    d = TSP(9)
     start = time.perf_counter()
     gen = d.sample_generator()
     for i in range(10):
