@@ -3,26 +3,27 @@ import os
 import matplotlib
 import numpy as np
 import tensorflow as tf
+from tensorboard.plugins.image.summary import pb as ipb
 from tensorflow.contrib import layers
 from tensorflow.contrib.rnn import LSTMCell
 from tensorflow.python.data import Dataset
-from tensorboard.plugins.image.summary import pb as ipb
 
 import util
 from message_passing import message_passing
 from model import Model
-from tasks.diagnostics.greedy.data import Greedy
+from tasks.diagnostics.data import switch_targets_paths, TSP, Greedy
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
-class GreedyRRN(Model):
-    n = 16
+class DiagnosticRRN(Model):
     batch_size = 32
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
-    n_steps = 1
+    n = 16
+    data = Greedy(n)
+    n_steps = 16
     n_hidden = 32
 
     def __init__(self):
@@ -32,9 +33,9 @@ class GreedyRRN(Model):
         print("Building graph...")
         self.session = tf.Session(config=tf.ConfigProto(allow_soft_placement=False))
         self.global_step = tf.Variable(initial_value=0, trainable=False)
-        self.optimizer = tf.train.AdamOptimizer()
+        self.optimizer = tf.train.AdamOptimizer(2e-4)
 
-        iterator = self._iterator(Greedy(self.n))
+        iterator = self._iterator(self.data)
         edges = [(i, j) for i in range(self.n) for j in range(self.n)]
         edges = tf.constant([(i + (b * self.n), j + (b * self.n)) for b in range(self.batch_size) for i, j in edges], tf.int32)
         edge_features = tf.zeros((tf.shape(edges)[0], 1))
@@ -66,8 +67,8 @@ class GreedyRRN(Model):
                 x = mlp(tf.concat([x, x0], axis=1), 'post')
                 x, state = lstm_cell(x, state)
 
-                logits = layers.fully_connected(x, num_outputs=self.n, activation_fn=None, scope='logits')
-                out = tf.argmax(tf.reshape(logits, (self.batch_size, self.n, self.n)), axis=2)
+                logits = layers.fully_connected(x, num_outputs=(self.n), activation_fn=None, scope='logits')
+                out = tf.argmax(tf.reshape(logits, (self.batch_size, (self.n), (self.n))), axis=2)
                 self.outputs.append(out)
                 loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets, logits=logits) / tf.log(2.))
                 losses.append(loss)
@@ -116,7 +117,7 @@ class GreedyRRN(Model):
     def _plot_paths(self, cities, expected, actual):
         fig = plt.figure(figsize=(8, 8))
         plt.scatter(cities[:, 0], cities[:, 1])
-        for i, txt in enumerate(range(self.n)):
+        for i, txt in enumerate(range(len(cities))):
             plt.annotate(txt, (cities[i, 0], cities[i, 1]))
         plt.plot(cities[expected, 0], cities[expected, 1], color=(0, 0, 1., 0.5), markersize=0, label='expected')
         plt.plot(cities[actual, 0], cities[actual, 1], color=(1., 0, 0, 0.5), markersize=0, label='actual')
@@ -133,7 +134,7 @@ class GreedyRRN(Model):
 
     def _write_summaries(self, writer, summaries, cities, outputs, paths, step):
         for t, b in enumerate(outputs):
-            actual = Greedy.switch_targets_paths(b[0])
+            actual = switch_targets_paths(b[0])
             imgs = self._plot_paths(cities[0], paths[0], actual)
             paths_summary = ipb("paths/%d" % t, imgs[None])
             writer.add_summary(paths_summary, step)
@@ -143,6 +144,6 @@ class GreedyRRN(Model):
 
 
 if __name__ == '__main__':
-    m = GreedyRRN()
+    m = DiagnosticRRN(TSP)
     print(m.train_batch())
     print(m.val_batch())
