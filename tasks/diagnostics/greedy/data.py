@@ -40,6 +40,7 @@ class Greedy:
             cities = np.random.uniform(size=(self.n, 2))
             path = self.greedy(cities)
             targets = list({j: i for i, j in enumerate(path)}.values())
+            print(targets)
 
             yield cities, number_feature, targets, path
 
