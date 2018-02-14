@@ -22,7 +22,7 @@ class GreedyRRN(Model):
     batch_size = 32
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
-    n_steps = 16
+    n_steps = 1
     n_hidden = 32
 
     def __init__(self):
