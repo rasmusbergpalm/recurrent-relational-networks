@@ -3,7 +3,7 @@ import numpy as np
 
 from tasks.babi.rrn import BaBiRecurrentRelationalNet
 
-model_dir = '/home/rapal/runs/2e7a939/'
+model_dir = '/home/rapal/runs/37a71bd/'
 n_steps = BaBiRecurrentRelationalNet.n_steps
 
 eval_fname = model_dir + '%d-eval.npz' % n_steps
