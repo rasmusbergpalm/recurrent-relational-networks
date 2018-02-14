@@ -23,7 +23,7 @@ class DiagnosticRRN(Model):
     message = os.environ.get('MESSAGE')
     n = 7
     data = TSP(n)
-    n_steps = n
+    n_steps = 1
     n_hidden = 32
 
     def __init__(self):
