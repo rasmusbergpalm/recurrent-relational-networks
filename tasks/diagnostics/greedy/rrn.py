@@ -1,18 +1,24 @@
 import os
-import tensorflow as tf
-from tensorflow.python.data import Dataset
 
+import matplotlib
+import numpy as np
+import tensorflow as tf
+from tensorflow.contrib import layers
+from tensorflow.contrib.rnn import LSTMCell
+from tensorflow.python.data import Dataset
+from tensorboard.plugins.image.summary import pb as ipb
+
+import util
 from message_passing import message_passing
 from model import Model
 from tasks.diagnostics.greedy.data import Greedy
-from tensorflow.contrib import layers
-from tensorflow.contrib.rnn import LSTMCell
-import util
-from tasks.diagnostics.tsp.data import TSP
+
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 
 class GreedyRRN(Model):
-    n = 7
+    n = 19
     batch_size = 32
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
@@ -28,17 +34,17 @@ class GreedyRRN(Model):
         self.global_step = tf.Variable(initial_value=0, trainable=False)
         self.optimizer = tf.train.AdamOptimizer()
 
-        iterator = self._iterator(TSP(self.n))
+        iterator = self._iterator(Greedy(self.n))
         edges = [(i, j) for i in range(self.n) for j in range(self.n)]
         edges = tf.constant([(i + (b * self.n), j + (b * self.n)) for b in range(self.batch_size) for i, j in edges], tf.int32)
         edge_features = tf.zeros((tf.shape(edges)[0], 1))
 
-        cities, indices, targets, paths = iterator.get_next()
+        self.cities, self.indices, self.targets, self.paths = iterator.get_next()
 
         n_nodes = self.n * self.batch_size
-        cities = tf.reshape(cities, (n_nodes, 2))
-        indices = tf.one_hot(tf.reshape(indices, (n_nodes,)), self.n)
-        targets = tf.reshape(targets, (n_nodes,))
+        cities = tf.reshape(self.cities, (n_nodes, 2))
+        indices = tf.one_hot(tf.reshape(self.indices, (n_nodes,)), self.n)
+        targets = tf.reshape(self.targets, (n_nodes,))
 
         def mlp(x, scope):
             with tf.variable_scope(scope):
@@ -50,7 +56,7 @@ class GreedyRRN(Model):
         x = mlp(x, 'pre')
 
         with tf.variable_scope('steps'):
-            outputs = []
+            self.outputs = []
             losses = []
             x0 = x
             lstm_cell = LSTMCell(self.n_hidden)
@@ -60,9 +66,10 @@ class GreedyRRN(Model):
                 x = mlp(tf.concat([x, x0], axis=1), 'post')
                 x, state = lstm_cell(x, state)
 
-                out = layers.fully_connected(x, num_outputs=self.n, activation_fn=None, scope='out')
-                outputs.append(out)
-                loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets, logits=out) / tf.log(2.))
+                logits = layers.fully_connected(x, num_outputs=self.n, activation_fn=None, scope='logits')
+                out = tf.argmax(tf.reshape(logits, (self.batch_size, self.n, self.n)), axis=2)
+                self.outputs.append(out)
+                loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets, logits=logits) / tf.log(2.))
                 losses.append(loss)
 
                 tf.summary.scalar('steps/%d/loss' % step, loss)
@@ -84,15 +91,12 @@ class GreedyRRN(Model):
         self.summaries = tf.summary.merge_all()
 
     def train_batch(self):
-        _, loss, summaries, step = self.session.run([self.train_step, self.loss, self.summaries, self.global_step])
-        self.train_writer.add_summary(summaries, step)
-        self.train_writer.flush()
+        _, loss = self.session.run([self.train_step, self.loss])
         return loss
 
     def val_batch(self):
-        loss, summaries, step = self.session.run([self.loss, self.summaries, self.global_step])
-        self.test_writer.add_summary(summaries, step)
-        self.test_writer.flush()
+        loss, summaries, step, outputs, cities, paths = self.session.run([self.loss, self.summaries, self.global_step, self.outputs, self.cities, self.paths])
+        self._write_summaries(self.test_writer, summaries, cities, outputs, paths, step)
         return loss
 
     def save(self, name):
@@ -109,7 +113,36 @@ class GreedyRRN(Model):
             data.output_shapes()
         ).batch(self.batch_size).prefetch(1).make_one_shot_iterator()
 
+    def _plot_paths(self, cities, expected, actual):
+        fig = plt.figure(figsize=(8, 8))
+        plt.scatter(cities[:, 0], cities[:, 1])
+        for i, txt in enumerate(range(self.n)):
+            plt.annotate(txt, (cities[i, 0], cities[i, 1]))
+        plt.plot(cities[expected, 0], cities[expected, 1], 'b:', markersize=0, label='expected')
+        plt.plot(cities[actual, 0], cities[actual, 1], 'r--', markersize=0, label='actual')
+        plt.legend(loc='upper right')
+
+        plt.xlim([0, 1])
+        plt.ylim([0, 1])
+        plt.axis('off')
+        fig.canvas.draw()
+        data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+        data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        plt.close()
+        return data
+
+    def _write_summaries(self, writer, summaries, cities, outputs, paths, step):
+        for t, b in enumerate(outputs):
+            actual = list({j: i for i, j in enumerate(b[0])}.values())
+            imgs = self._plot_paths(cities[0], paths[0], actual)
+            paths_summary = ipb("paths/%d" % t, imgs[None])
+            writer.add_summary(paths_summary, step)
+
+        writer.add_summary(summaries, step)
+        writer.flush()
+
 
 if __name__ == '__main__':
     m = GreedyRRN()
     print(m.train_batch())
+    print(m.val_batch())
