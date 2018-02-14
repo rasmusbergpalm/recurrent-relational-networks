@@ -34,13 +34,17 @@ class Greedy:
             del left[closest]
         return path
 
+    @staticmethod
+    def switch_targets_paths(target_or_path):
+        _, other = zip(*sorted([(j, i) for i, j in enumerate(target_or_path)]))
+        return other
+
     def sample_generator(self):
         while True:
             number_feature = np.arange(self.n)
             cities = np.random.uniform(size=(self.n, 2))
             path = self.greedy(cities)
-            _, targets = zip(*sorted([(j, i) for i, j in enumerate(path)]))
-            print(targets)
+            targets = self.switch_targets_paths(path)
 
             yield cities, number_feature, targets, path
 

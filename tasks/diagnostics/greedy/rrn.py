@@ -133,7 +133,7 @@ class GreedyRRN(Model):
 
     def _write_summaries(self, writer, summaries, cities, outputs, paths, step):
         for t, b in enumerate(outputs):
-            actual = list({j: i for i, j in enumerate(b[0])}.values())
+            actual = Greedy.switch_targets_paths(b[0])
             imgs = self._plot_paths(cities[0], paths[0], actual)
             paths_summary = ipb("paths/%d" % t, imgs[None])
             writer.add_summary(paths_summary, step)
