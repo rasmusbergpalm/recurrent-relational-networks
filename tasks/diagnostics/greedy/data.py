@@ -39,7 +39,7 @@ class Greedy:
             number_feature = np.arange(self.n)
             cities = np.random.uniform(size=(self.n, 2))
             path = self.greedy(cities)
-            targets = list({j: i for i, j in enumerate(path)}.values())
+            _, targets = zip(*sorted([(j, i) for i, j in enumerate(path)]))
             print(targets)
 
             yield cities, number_feature, targets, path
