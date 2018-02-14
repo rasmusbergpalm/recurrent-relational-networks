@@ -22,7 +22,7 @@ class GreedyRRN(Model):
     batch_size = 32
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
-    n_steps = 1
+    n_steps = 8
     n_hidden = 32
 
     def __init__(self):
@@ -118,8 +118,8 @@ class GreedyRRN(Model):
         plt.scatter(cities[:, 0], cities[:, 1])
         for i, txt in enumerate(range(self.n)):
             plt.annotate(txt, (cities[i, 0], cities[i, 1]))
-        plt.plot(cities[expected, 0], cities[expected, 1], 'b:', markersize=0, label='expected')
-        plt.plot(cities[actual, 0], cities[actual, 1], 'r--', markersize=0, label='actual')
+        plt.plot(cities[expected, 0], cities[expected, 1], color=(0, 0, 1., 0.5), markersize=0, label='expected')
+        plt.plot(cities[actual, 0], cities[actual, 1], color=(1., 0, 0, 0.5), markersize=0, label='actual')
         plt.legend(loc='upper right')
 
         plt.xlim([0, 1])
