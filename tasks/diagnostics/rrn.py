@@ -87,8 +87,8 @@ class DiagnosticRRN(Model):
         util.print_vars(tf.trainable_variables())
 
         tensorboard_dir = os.environ.get('TENSORBOARD_DIR') or '/tmp/tensorboard'
-        self.train_writer = tf.summary.FileWriter(tensorboard_dir + '/greedy/%s/train/%s' % (self.revision, self.name), self.session.graph)
-        self.test_writer = tf.summary.FileWriter(tensorboard_dir + '/greedy/%s/test/%s' % (self.revision, self.name), self.session.graph)
+        self.train_writer = tf.summary.FileWriter(tensorboard_dir + '/diagnostic/%s/train/%s' % (self.revision, self.name), self.session.graph)
+        self.test_writer = tf.summary.FileWriter(tensorboard_dir + '/diagnostic/%s/test/%s' % (self.revision, self.name), self.session.graph)
         self.summaries = tf.summary.merge_all()
 
     def train_batch(self):
