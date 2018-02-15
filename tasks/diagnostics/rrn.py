@@ -47,11 +47,11 @@ class DiagnosticRRN(Model):
         indices = tf.one_hot(tf.reshape(self.indices, (n_nodes,)), self.n)
         targets = tf.reshape(self.targets, (n_nodes,))
 
-        def mlp(x, scope):
+        def mlp(x, scope, n_out = self.n_hidden):
             with tf.variable_scope(scope):
                 for i in range(3):
                     x = layers.fully_connected(x, self.n_hidden)
-                return layers.fully_connected(x, self.n_hidden, activation_fn=None)
+                return layers.fully_connected(x, n_out, activation_fn=None)
 
         x = tf.concat([cities, indices], axis=1)
         x = mlp(x, 'pre')
@@ -69,7 +69,7 @@ class DiagnosticRRN(Model):
                 x = layers.batch_norm(x, scope='bn')
                 x, state = lstm_cell(x, state)
 
-                logits = layers.fully_connected(x, num_outputs=(self.n), activation_fn=None, scope='logits')
+                logits = mlp(x, 'logits', self.n)
                 out = tf.argmax(tf.reshape(logits, (self.batch_size, (self.n), (self.n))), axis=2)
                 self.outputs.append(out)
                 loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets, logits=logits) / tf.log(2.))
