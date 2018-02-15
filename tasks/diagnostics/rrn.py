@@ -23,7 +23,7 @@ class DiagnosticRRN(Model):
     message = os.environ.get('MESSAGE')
     n = 8
     data = Greedy(n)
-    n_steps = 2*n
+    n_steps = 1
     n_hidden = 128
 
     def __init__(self):
