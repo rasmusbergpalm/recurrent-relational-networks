@@ -33,7 +33,7 @@ class DiagnosticRRN(Model):
         print("Building graph...")
         self.session = tf.Session(config=tf.ConfigProto(allow_soft_placement=False))
         self.global_step = tf.Variable(initial_value=0, trainable=False)
-        self.optimizer = tf.train.AdamOptimizer(2e-4)
+        self.optimizer = tf.train.AdamOptimizer(2e-5)
 
         iterator = self._iterator(self.data)
         edges = [(i, j) for i in range(self.n) for j in range(self.n)]
