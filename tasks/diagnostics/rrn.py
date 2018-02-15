@@ -65,7 +65,7 @@ class DiagnosticRRN(Model):
             for step in range(self.n_steps):
                 x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                 x = mlp(tf.concat([x, x0], axis=1), 'post')
-                tf.summary.histogram("activations/" + step, x)
+                tf.summary.histogram("activations/%d" % step, x)
                 x = layers.batch_norm(x, scope='bn')
                 x, state = lstm_cell(x, state)
 
