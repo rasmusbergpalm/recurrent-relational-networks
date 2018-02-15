@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 from tensorboard.plugins.image.summary import pb as ipb
 from tensorflow.contrib import layers
-from tensorflow.contrib.rnn import LSTMCell
+from tensorflow.contrib.rnn import LSTMCell, LayerNormBasicLSTMCell
 from tensorflow.python.data import Dataset
 
 import util
@@ -60,14 +60,11 @@ class DiagnosticRRN(Model):
             self.outputs = []
             losses = []
             x0 = x
-            lstm_cell = LSTMCell(self.n_hidden)
+            lstm_cell = LayerNormBasicLSTMCell(self.n_hidden)
             state = lstm_cell.zero_state(n_nodes, tf.float32)
             for step in range(self.n_steps):
                 x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                 x = mlp(tf.concat([x, x0], axis=1), 'post')
-                x = tf.reshape(x, (self.batch_size, self.n, self.n_hidden))
-                x = layers.batch_norm(x, scope='bn')
-                x = tf.reshape(x, (-1, self.n_hidden))
                 x, state = lstm_cell(x, state)
 
                 logits = layers.fully_connected(x, num_outputs=(self.n), activation_fn=None, scope='logits')
