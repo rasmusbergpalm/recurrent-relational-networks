@@ -21,9 +21,9 @@ class DiagnosticRRN(Model):
     batch_size = 32
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
-    n = 16
+    n = 8
     data = Greedy(n)
-    n_steps = n
+    n_steps = 2*n
     n_hidden = 128
 
     def __init__(self):
