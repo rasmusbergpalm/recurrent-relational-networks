@@ -84,6 +84,7 @@ class DiagnosticRRN(Model):
         for g, v in gvs:
             tf.summary.histogram("grads/" + v.name, g)
             tf.summary.histogram("vars/" + v.name, v)
+            tf.summary.histogram("g_ratio/" + v.name, g / v)
 
         self.train_step = optimizer.minimize(self.loss, global_step=self.global_step)
 
