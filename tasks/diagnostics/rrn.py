@@ -65,6 +65,7 @@ class DiagnosticRRN(Model):
             for step in range(self.n_steps):
                 x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                 x = mlp(tf.concat([x, x0], axis=1), 'post')
+                x = layers.batch_norm(x)
                 x, state = lstm_cell(x, state)
 
                 logits = layers.fully_connected(x, num_outputs=(self.n), activation_fn=None, scope='logits')
@@ -87,7 +88,9 @@ class DiagnosticRRN(Model):
             tf.summary.histogram("g_ratio/" + v.name, g / (v + 1e-8))
 
         gvs = [(tf.clip_by_value(g, -1.0, 1.0), v) for g, v in gvs]
-        self.train_step = optimizer.apply_gradients(gvs, global_step=self.global_step)
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            self.train_step = optimizer.apply_gradients(gvs, global_step=self.global_step)
         # self.train_step = optimizer.minimize(self.loss, global_step=self.global_step)
 
         self.session.run(tf.global_variables_initializer())
