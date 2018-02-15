@@ -80,7 +80,12 @@ class DiagnosticRRN(Model):
         tf.summary.scalar('loss', self.loss)
 
         optimizer = tf.train.AdamOptimizer()
-        self.train_step = optimizer.minimize(self.loss, self.global_step)
+        gvs = self.optimizer.compute_gradients(self.loss, colocate_gradients_with_ops=True)
+        for g, v in gvs:
+            tf.summary.histogram("grads/" + v.name, g)
+            tf.summary.histogram("vars/" + v.name, v)
+
+        self.train_step = optimizer.minimize(self.loss, global_step=self.global_step)
 
         self.session.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver()
