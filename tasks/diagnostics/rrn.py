@@ -80,7 +80,7 @@ class DiagnosticRRN(Model):
         tf.summary.scalar('loss', self.loss)
 
         optimizer = tf.train.AdamOptimizer()
-        gvs = self.optimizer.compute_gradients(self.loss, colocate_gradients_with_ops=True)
+        gvs = optimizer.compute_gradients(self.loss, colocate_gradients_with_ops=True)
         for g, v in gvs:
             tf.summary.histogram("grads/" + v.name, g)
             tf.summary.histogram("vars/" + v.name, v)
