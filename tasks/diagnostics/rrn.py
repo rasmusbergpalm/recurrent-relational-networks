@@ -33,7 +33,7 @@ class DiagnosticRRN(Model):
         print("Building graph...")
         self.session = tf.Session(config=tf.ConfigProto(allow_soft_placement=False))
         self.global_step = tf.Variable(initial_value=0, trainable=False)
-        self.optimizer = tf.train.AdamOptimizer(2e-5)
+        self.optimizer = tf.train.AdamOptimizer(1e-4)
 
         iterator = self._iterator(self.data)
         edges = [(i, j) for i in range(self.n) for j in range(self.n)]
@@ -60,11 +60,12 @@ class DiagnosticRRN(Model):
             self.outputs = []
             losses = []
             x0 = x
-            lstm_cell = LayerNormBasicLSTMCell(self.n_hidden)
+            lstm_cell = LSTMCell(self.n_hidden)
             state = lstm_cell.zero_state(n_nodes, tf.float32)
             for step in range(self.n_steps):
                 x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                 x = mlp(tf.concat([x, x0], axis=1), 'post')
+                x = layers.batch_norm(x)
                 x, state = lstm_cell(x, state)
 
                 logits = layers.fully_connected(x, num_outputs=(self.n), activation_fn=None, scope='logits')
@@ -76,11 +77,10 @@ class DiagnosticRRN(Model):
                 tf.summary.scalar('steps/%d/loss' % step, loss)
                 tf.get_variable_scope().reuse_variables()
 
-        self.loss = losses[-1]  # tf.reduce_mean(losses)
+        self.loss = tf.reduce_mean(losses)
         tf.summary.scalar('loss', self.loss)
 
-        optimizer = tf.train.AdamOptimizer()
-        gvs = optimizer.compute_gradients(self.loss, colocate_gradients_with_ops=True)
+        gvs = self.optimizer.compute_gradients(self.loss, colocate_gradients_with_ops=True)
         for g, v in gvs:
             tf.summary.histogram("grads/" + v.name, g)
             tf.summary.histogram("vars/" + v.name, v)
@@ -89,7 +89,7 @@ class DiagnosticRRN(Model):
         gvs = [(tf.clip_by_value(g, -1.0, 1.0), v) for g, v in gvs]
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
-            self.train_step = optimizer.apply_gradients(gvs, global_step=self.global_step)
+            self.train_step = self.optimizer.apply_gradients(gvs, global_step=self.global_step)
         # self.train_step = optimizer.minimize(self.loss, global_step=self.global_step)
 
         self.session.run(tf.global_variables_initializer())
