@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 
 
 class DiagnosticRRN(Model):
+
     batch_size = 32
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
