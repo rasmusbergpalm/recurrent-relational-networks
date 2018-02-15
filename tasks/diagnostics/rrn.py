@@ -65,7 +65,9 @@ class DiagnosticRRN(Model):
             for step in range(self.n_steps):
                 x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                 x = mlp(tf.concat([x, x0], axis=1), 'post')
+                x = tf.reshape(x, (self.batch_size, self.n, self.n_hidden))
                 x = layers.batch_norm(x, scope='bn')
+                x = tf.reshape(x, (-1, self.n_hidden))
                 x, state = lstm_cell(x, state)
 
                 logits = layers.fully_connected(x, num_outputs=(self.n), activation_fn=None, scope='logits')
