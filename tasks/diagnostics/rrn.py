@@ -18,7 +18,6 @@ import matplotlib.pyplot as plt
 
 
 class DiagnosticRRN(Model):
-
     batch_size = 32
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
@@ -87,7 +86,9 @@ class DiagnosticRRN(Model):
             tf.summary.histogram("vars/" + v.name, v)
             tf.summary.histogram("g_ratio/" + v.name, g / (v + 1e-8))
 
-        self.train_step = optimizer.minimize(self.loss, global_step=self.global_step)
+        gvs = [(tf.clip_by_value(g, -1.0, 1.0), v) for g, v in gvs]
+        self.train_step = optimizer.apply_gradients(gvs, global_step=self.global_step)
+        # self.train_step = optimizer.minimize(self.loss, global_step=self.global_step)
 
         self.session.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver()
