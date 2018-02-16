@@ -88,7 +88,7 @@ class PrettyClevr:
 if __name__ == '__main__':
     d = PrettyClevr(8)
     gen = d.sample_generator()
-    n = 10
+    n = 1
     start = time.perf_counter()
 
     for i in range(n):

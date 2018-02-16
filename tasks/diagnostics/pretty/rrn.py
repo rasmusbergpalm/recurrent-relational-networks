@@ -21,7 +21,7 @@ class PrettyRRN(Model):
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     data = PrettyClevr(8)
-    n_steps = 8
+    n_steps = 1
     n_hidden = 128
 
     def __init__(self):
