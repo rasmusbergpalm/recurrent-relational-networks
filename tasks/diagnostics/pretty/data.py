@@ -1,5 +1,5 @@
 import io
-
+import os
 import matplotlib
 
 from tasks.diagnostics.data import greedy, dist_squared
@@ -49,7 +49,7 @@ class PrettyClevr:
             img = self._render(objects, object_colors, object_markers)
             xy = np.stack(np.meshgrid(np.linspace(0, 1, 128), np.linspace(0, 1, 128)), axis=-1)
             path = greedy(objects, self.n - 1)
-            for n_jumps in range(self.n - 1):
+            for n_jumps in range(self.n):
                 for color_anchor in [True, False]:
 
                     target_obj = path[n_jumps]
@@ -86,9 +86,11 @@ class PrettyClevr:
 
 
 if __name__ == '__main__':
+    # TODO pre-generate dataset. For speed and ensure there's no fishy matplotlib thread-safety issues.
+    data_dir = os.environ.get('DATA_DIR') or '/tmp'
     d = PrettyClevr(8)
     gen = d.sample_generator()
-    n = 1
+    n = 16 * 10000
     start = time.perf_counter()
 
     for i in range(n):
