@@ -1,18 +1,15 @@
 from itertools import permutations
 
-import io
 import matplotlib
 from scipy.spatial.distance import cdist
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import time
-import random
 
 import numpy as np
 import tensorflow as tf
 from scipy.spatial.distance import pdist, squareform
-from PIL import Image
 
 
 def switch_targets_paths(target_or_path):
@@ -102,52 +99,6 @@ class TSP:
             yield cities, number_feature, targets, path
 
 
-class PrettyClevr:
-    colors = ['blue', 'green', 'red', 'cyan', 'magenta', 'yellow', 'black', 'gray']
-
-    def __init__(self, n):
-        assert n <= len(self.colors), "Not enough colors defined."
-        self.n = n
-        self.r = 0.1
-
-    def sample_generator(self):
-        while True:
-            object_colors = random.sample(range(self.n), self.n)
-            objects = [np.random.uniform(size=(2,))]
-            while len(objects) < self.n:
-                o = np.random.uniform(size=(2,))
-                if np.min(dist_squared(o, np.array(objects))) > self.r:
-                    objects.append(o)
-
-            n_jumps = np.random.randint(self.n)
-            objects = np.array(objects)
-            path = greedy(objects, n_jumps)
-            target_obj = path[-1]
-            anchor_color = object_colors[0]
-            target_color = object_colors[target_obj]
-
-            img = self._render(objects, object_colors)
-
-            yield img, anchor_color, n_jumps, target_color
-
-    def _render(self, objects, object_colors):
-        fig = plt.figure(figsize=(1, 1), frameon=False)
-        ax = fig.add_axes([0, 0, 1, 1])
-        ax.axis('off')
-        plt.xlim([0 - self.r, 1 + self.r])
-        plt.ylim([0 - self.r, 1 + self.r])
-        colors = [self.colors[c_idx] for c_idx in object_colors]
-        ax.scatter(objects[:, 0], objects[:, 1], c=colors)
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-        plt.close()
-        buf.seek(0)
-        im = Image.open(buf)
-
-        return im.convert('RGB')
-
-
 def plot_path(cities, path):
     plt.scatter(cities[:, 0], cities[:, 1])
     for i, txt in enumerate(range(d.n)):
@@ -158,19 +109,6 @@ def plot_path(cities, path):
     plt.savefig('out.png')
     plt.close()
 
-
-if __name__ == '__main__':
-    d = PrettyClevr(8)
-    gen = d.sample_generator()
-    img, anchor_color, n_jumps, target_color = next(gen)
-
-    fig = plt.figure(figsize=(1, 1), frameon=False)
-    ax = fig.add_axes([0, 0, 1, 1])
-    ax.axis('off')
-    ax.imshow(img)
-    name = "%s-%d-%s" % (d.colors[anchor_color], n_jumps, d.colors[target_color])
-    plt.savefig(name)
-    plt.close()
 
 if __name__ == '__main2__':
     n = 7
