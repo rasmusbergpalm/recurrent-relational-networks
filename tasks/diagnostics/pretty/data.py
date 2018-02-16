@@ -10,6 +10,7 @@ import random
 import tensorflow as tf
 import numpy as np
 from PIL import Image
+import time
 
 
 def fig2array(fig):
@@ -44,28 +45,31 @@ class PrettyClevr:
         while True:
             object_colors = random.sample(range(self.n), self.n)
             object_markers = random.sample(range(self.n), self.n)
-            objects = [np.random.uniform(size=(2,))]
-            while len(objects) < self.n:
-                o = np.random.uniform(size=(2,))
-                if np.min(dist_squared(o, np.array(objects))) > self.r:
-                    objects.append(o)
-
-            n_jumps = np.random.randint(self.n)
-            objects = np.array(objects)
-            path = greedy(objects, n_jumps)
-            target_obj = path[-1]
-
-            if random.choice([True, False]):
-                anchor = self.colors[object_colors[0]]
-                target = self.markers[object_markers[target_obj]]
-            else:
-                anchor = self.markers[object_markers[0]]
-                target = self.colors[object_colors[target_obj]]
-
+            objects = self.get_objects()
             img = self._render(objects, object_colors, object_markers)
             xy = np.stack(np.meshgrid(np.linspace(0, 1, 128), np.linspace(0, 1, 128)), axis=-1)
+            path = greedy(objects, self.n - 1)
+            for n_jumps in range(self.n - 1):
+                for color_anchor in [True, False]:
 
-            yield img, xy, self.s2i[anchor], n_jumps, self.s2i[target]
+                    target_obj = path[n_jumps]
+                    if color_anchor:
+                        anchor = self.colors[object_colors[0]]
+                        target = self.markers[object_markers[target_obj]]
+                    else:
+                        anchor = self.markers[object_markers[0]]
+                        target = self.colors[object_colors[target_obj]]
+
+                    yield img, xy, self.s2i[anchor], n_jumps, self.s2i[target]
+
+    def get_objects(self):
+        objects = [np.random.uniform(size=(2,))]
+        while len(objects) < self.n:
+            o = np.random.uniform(size=(2,))
+            if np.min(dist_squared(o, np.array(objects))) > self.r:
+                objects.append(o)
+        objects = np.array(objects)
+        return objects
 
     def _render(self, objects, object_colors, object_markers):
         fig = plt.figure(figsize=(1.28, 1.28), frameon=False)
@@ -84,15 +88,17 @@ class PrettyClevr:
 if __name__ == '__main__':
     d = PrettyClevr(8)
     gen = d.sample_generator()
-    for i in range(10):
-        img, xy, anchor, n_jumps, target = next(gen)
+    n = 10
+    start = time.perf_counter()
 
-    fig = plt.figure(figsize=(2.56, 2.56), frameon=False)
-    plt.imshow(img)
-    plt.title('foo')
-    plt.xticks([])
-    plt.yticks([])
-    plt.tight_layout()
-    name = "%s-%d-%s" % (d.i2s[anchor], n_jumps, d.i2s[target])
-    plt.savefig(name)
-    plt.close()
+    for i in range(n):
+        img, xy, anchor, n_jumps, target = next(gen)
+        fig = plt.figure(figsize=(2.56, 2.56), frameon=False)
+        plt.imshow(img)
+        plt.title('foo')
+        plt.xticks([])
+        plt.yticks([])
+        plt.tight_layout()
+        name = "%s-%d-%s" % (d.i2s[anchor], n_jumps, d.i2s[target])
+        plt.savefig(name)
+        plt.close()
