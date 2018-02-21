@@ -1,5 +1,5 @@
 import io
-import os
+
 import matplotlib
 
 from tasks.diagnostics.data import greedy, dist_squared
@@ -10,7 +10,6 @@ import random
 import tensorflow as tf
 import numpy as np
 from PIL import Image
-import time
 
 
 def fig2array(fig):
@@ -47,20 +46,23 @@ class PrettyClevr:
             object_markers = random.sample(range(self.n), self.n)
             objects = self.get_objects()
             img = self._render(objects, object_colors, object_markers)
-            xy = np.stack(np.meshgrid(np.linspace(0, 1, 128), np.linspace(0, 1, 128)), axis=-1)
-            path = greedy(objects, self.n - 1)
-            for n_jumps in range(self.n):
-                for color_anchor in [True, False]:
+            questions = []
+            for start_idx in range(self.n):
+                path = greedy(objects, self.n - 1, start_idx)
+                for n_jumps in range(self.n):
+                    for color_anchor in [True, False]:
 
-                    target_obj = path[n_jumps]
-                    if color_anchor:
-                        anchor = self.colors[object_colors[0]]
-                        target = self.markers[object_markers[target_obj]]
-                    else:
-                        anchor = self.markers[object_markers[0]]
-                        target = self.colors[object_colors[target_obj]]
+                        target_obj = path[n_jumps]
+                        if color_anchor:
+                            anchor = self.colors[object_colors[start_idx]]
+                            target = self.markers[object_markers[target_obj]]
+                        else:
+                            anchor = self.markers[object_markers[start_idx]]
+                            target = self.colors[object_colors[target_obj]]
 
-                    yield img, xy, self.s2i[anchor], n_jumps, self.s2i[target]
+                        questions.append((self.s2i[anchor], n_jumps, self.s2i[target]))
+
+            yield img, questions
 
     def get_objects(self):
         objects = [np.random.uniform(size=(2,))]
@@ -84,23 +86,18 @@ class PrettyClevr:
 
         return fig2array(fig)
 
+    def generate(self, n):
+        gen = self.sample_generator()
+        with open('questions.csv', 'w') as qf:
+            qf.write("# %s \n" % str(self.i2s))
+            qf.write("# image, anchor, jumps, target\n")
+            for i in range(n):
+                img, questions = next(gen)
+                png_name = '%05d.png' % i
+                Image.fromarray(img).save(png_name)
+                qf.writelines(["%s, %d, %d, %d\n" % (png_name, a, b, c) for (a, b, c) in questions])
+
 
 if __name__ == '__main__':
-    # TODO pre-generate dataset. For speed and ensure there's no fishy matplotlib thread-safety issues.
-    data_dir = os.environ.get('DATA_DIR') or '/tmp'
     d = PrettyClevr(8)
-    gen = d.sample_generator()
-    n = 16 * 10000
-    start = time.perf_counter()
-
-    for i in range(n):
-        img, xy, anchor, n_jumps, target = next(gen)
-        fig = plt.figure(figsize=(2.56, 2.56), frameon=False)
-        plt.imshow(img)
-        plt.title('foo')
-        plt.xticks([])
-        plt.yticks([])
-        plt.tight_layout()
-        name = "%s-%d-%s" % (d.i2s[anchor], n_jumps, d.i2s[target])
-        plt.savefig(name)
-        plt.close()
+    d.generate(10000)

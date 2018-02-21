@@ -17,12 +17,12 @@ def switch_targets_paths(target_or_path):
     return other
 
 
-def greedy(cities: np.ndarray, n_jumps):
+def greedy(cities: np.ndarray, n_jumps, start_idx):
     left = cities.tolist()
     idx = list(range(len(cities)))
-    path = [0]
-    del left[0]
-    del idx[0]
+    path = [start_idx]
+    del left[start_idx]
+    del idx[start_idx]
     for _ in range(n_jumps):
         dist = cdist(cities[path[-1]][None], np.array(left))
         closest = np.argmin(dist)
