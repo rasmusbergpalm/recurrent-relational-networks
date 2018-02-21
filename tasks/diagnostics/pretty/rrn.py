@@ -23,7 +23,7 @@ class PrettyRRN(Model):
     n = 8
     data = PrettyClevr()
     n_steps = 1
-    n_hidden = 128
+    n_hidden = 32
 
     def __init__(self):
         super().__init__()
@@ -41,13 +41,6 @@ class PrettyRRN(Model):
 
         # self.xy = tf.tile(tf.expand_dims(tf.transpose(tf.meshgrid(tf.linspace(0., 1., 128), tf.linspace(0., 1., 128)), (1, 2, 0)), axis=0), (self.batch_size, 1, 1, 1))
 
-        # x = tf.concat([self.img, self.xy], axis=-1)
-        x = self.img
-        with tf.variable_scope('encoder'):
-            for i in range(4):
-                x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=1)  # (bs, h, w, 128)
-                x = layers.max_pool2d(x, 2, 2)
-
         def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden):
             with tf.variable_scope(scope):
                 for i in range(3):
@@ -63,12 +56,20 @@ class PrettyRRN(Model):
         # n_edges = tf.shape(edges)[0]
 
         n_anchors_targets = len(self.data.i2s)
-        question = tf.concat([tf.one_hot(self.anchors, n_anchors_targets), tf.one_hot(self.n_jumps, self.n)], axis=1)  # (bs, 24)
-        question = mlp(question, "q")
+        q = tf.concat([tf.one_hot(self.anchors, n_anchors_targets), tf.one_hot(self.n_jumps, self.n)], axis=1)  # (bs, 24)
+        q = mlp(q, "q")
+        q = tf.reshape(q, (self.batch_size, 1, 1, self.n_hidden))
+        q = tf.tile(q, (1, 128, 128, 1))
+
+        # x = tf.concat([self.img, self.xy], axis=-1)
+        x = tf.concat([self.img, q], axis=-1)
+        with tf.variable_scope('encoder'):
+            for i in range(4):
+                x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=1)  # (bs, h, w, 128)
+                x = layers.max_pool2d(x, 2, 2)
 
         x = tf.reshape(x, (self.batch_size, 8 * 8 * self.n_hidden))
-        x = tf.concat([x, question], axis=1)
-
+        # x = tf.concat([x, q], axis=1)
         logits = mlp(x, "out", n_hid=self.n_hidden, n_out=n_anchors_targets)
 
         # edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, self.n ** 2, 1]), [n_edges, n_anchors_targets + self.n])
