@@ -64,11 +64,12 @@ class PrettyRRN(Model):
 
         n_anchors_targets = len(self.data.i2s)
         question = tf.concat([tf.one_hot(self.anchors, n_anchors_targets), tf.one_hot(self.n_jumps, self.n)], axis=1)  # (bs, 24)
+        question = mlp(question, "q")
 
         x = tf.reshape(x, (self.batch_size, 8 * 8 * self.n_hidden))
         x = tf.concat([x, question], axis=1)
 
-        logits = mlp(x, "out", n_hid=512, n_out=n_anchors_targets)
+        logits = mlp(x, "out", n_hid=self.n_hidden, n_out=n_anchors_targets)
 
         # edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, self.n ** 2, 1]), [n_edges, n_anchors_targets + self.n])
 
