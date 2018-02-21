@@ -50,9 +50,10 @@ class PrettyClevr:
             self.questions = [l.split(", ") for l in qf.readlines()]
 
     def sample_generator(self):
-        for img_fname, anchor, n_jumps, target in random.sample(self.questions, len(self.questions)):
-            if n_jumps == "0":
-                yield np.array(Image.open(self.data_dir + '/images/' + img_fname)), int(anchor), int(n_jumps), int(target)
+        while True:
+            for img_fname, anchor, n_jumps, target in random.sample(self.questions, len(self.questions)):
+                if n_jumps == "0":
+                    yield np.array(Image.open(self.data_dir + '/images/' + img_fname)), int(anchor), int(n_jumps), int(target)
 
 
 class PrettyClevrGenerator:
