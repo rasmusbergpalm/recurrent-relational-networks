@@ -54,8 +54,8 @@ class PrettyRRN(Model):
                 return layers.fully_connected(x, n_out, activation_fn=None)
 
         self.n = 8 * 8
-        n_nodes = self.batch_size * self.n
-        x = tf.reshape(x, (n_nodes, self.n_hidden))
+        # n_nodes = self.batch_size * self.n
+        # x = tf.reshape(x, (n_nodes, self.n_hidden))
 
         edges = [(i, j) for i in range(self.n) for j in range(self.n)]
         edges = tf.constant([(i + (b * self.n), j + (b * self.n)) for b in range(self.batch_size) for i, j in edges], tf.int32)
