@@ -64,7 +64,7 @@ class PrettyRRN(Model):
         n_anchors_targets = len(self.data.i2s)
         question = tf.concat([tf.one_hot(self.anchors, n_anchors_targets), tf.one_hot(self.n_jumps, self.n)], axis=1)  # (bs, 24)
 
-        x = tf.reshape(x, (self.batch_size, -1))
+        x = tf.reshape(x, (self.batch_size, 8 * 8 * self.n_hidden))
         x = tf.concat([x, question], axis=1)
 
         logits = mlp(x, "out", n_anchors_targets)
