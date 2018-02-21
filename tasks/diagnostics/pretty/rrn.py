@@ -45,7 +45,8 @@ class PrettyRRN(Model):
         x = self.img
         with tf.variable_scope('encoder'):
             for i in range(4):
-                x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=2)
+                x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=1)
+                x = layers.max_pool2d(x, 2, 2)
 
         def mlp(x, scope, n_out=self.n_hidden):
             with tf.variable_scope(scope):
@@ -53,13 +54,13 @@ class PrettyRRN(Model):
                     x = layers.fully_connected(x, self.n_hidden)
                 return layers.fully_connected(x, n_out, activation_fn=None)
 
-        self.n = 8 * 8
+        # self.n = 8 * 8
         # n_nodes = self.batch_size * self.n
         # x = tf.reshape(x, (n_nodes, self.n_hidden))
 
-        edges = [(i, j) for i in range(self.n) for j in range(self.n)]
-        edges = tf.constant([(i + (b * self.n), j + (b * self.n)) for b in range(self.batch_size) for i, j in edges], tf.int32)
-        n_edges = tf.shape(edges)[0]
+        # edges = [(i, j) for i in range(self.n) for j in range(self.n)]
+        # edges = tf.constant([(i + (b * self.n), j + (b * self.n)) for b in range(self.batch_size) for i, j in edges], tf.int32)
+        # n_edges = tf.shape(edges)[0]
 
         n_anchors_targets = len(self.data.i2s)
         question = tf.concat([tf.one_hot(self.anchors, n_anchors_targets), tf.one_hot(self.n_jumps, self.n)], axis=1)  # (bs, 24)
@@ -69,16 +70,16 @@ class PrettyRRN(Model):
 
         logits = mlp(x, "out", n_anchors_targets)
 
-        edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, self.n ** 2, 1]), [n_edges, n_anchors_targets + self.n])
+        # edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, self.n ** 2, 1]), [n_edges, n_anchors_targets + self.n])
 
-        n_nodes = self.n * self.batch_size
+        # n_nodes = self.n * self.batch_size
 
         with tf.variable_scope('steps'):
             self.outputs = []
             losses = []
-            x0 = x
-            lstm_cell = LSTMCell(self.n_hidden)
-            state = lstm_cell.zero_state(n_nodes, tf.float32)
+            # x0 = x
+            # lstm_cell = LSTMCell(self.n_hidden)
+            # state = lstm_cell.zero_state(n_nodes, tf.float32)
             for step in range(self.n_steps):
                 # x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                 # x = mlp(tf.concat([x, x0], axis=1), 'post')
@@ -107,7 +108,7 @@ class PrettyRRN(Model):
             tf.summary.histogram("vars/" + v.name, v)
             tf.summary.histogram("g_ratio/" + v.name, g / (v + 1e-8))
 
-        gvs = [(tf.clip_by_value(g, -1.0, 1.0), v) for g, v in gvs]
+        # gvs = [(tf.clip_by_value(g, -1.0, 1.0), v) for g, v in gvs]
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
             self.train_step = self.optimizer.apply_gradients(gvs, global_step=self.global_step)
