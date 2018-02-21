@@ -22,7 +22,7 @@ class PrettyRRN(Model):
     message = os.environ.get('MESSAGE')
     n = 8
     data = PrettyClevr()
-    n_steps = 1
+    n_steps = 4
     n_hidden = 128
 
     def __init__(self):
