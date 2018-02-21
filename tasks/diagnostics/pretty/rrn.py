@@ -65,7 +65,7 @@ class PrettyRRN(Model):
         x = tf.concat([self.img, q], axis=-1)
         with tf.variable_scope('encoder'):
             for i in range(7):
-                x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=1)  # (bs, h, w, 128)
+                x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=11, stride=1)  # (bs, h, w, 128)
                 x = layers.max_pool2d(x, 2, 2)
 
         x = tf.reshape(x, (self.batch_size, self.n_hidden))
