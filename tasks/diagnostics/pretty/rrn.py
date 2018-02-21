@@ -32,20 +32,20 @@ class PrettyRRN(Model):
         print("Building graph...")
         self.session = tf.Session(config=tf.ConfigProto(allow_soft_placement=False))
         self.global_step = tf.Variable(initial_value=0, trainable=False)
-        self.optimizer = tf.train.AdamOptimizer(1e-3)
+        self.optimizer = tf.train.AdamOptimizer(1e-4)
 
         iterator = self._iterator(self.data)
 
         self.org_img, self.anchors, self.n_jumps, self.targets = iterator.get_next()
-        self.img = ((1. - tf.to_float(self.org_img) / 255.) - 0.5)
+        self.img = ((1. - tf.to_float(self.org_img) / 255.) - 0.5)  # (bs, h, w, 3)
 
-        self.xy = tf.tile(tf.expand_dims(tf.transpose(tf.meshgrid(tf.linspace(0., 1., 128), tf.linspace(0., 1., 128)), (1, 2, 0)), axis=0), (self.batch_size, 1, 1, 1))
+        # self.xy = tf.tile(tf.expand_dims(tf.transpose(tf.meshgrid(tf.linspace(0., 1., 128), tf.linspace(0., 1., 128)), (1, 2, 0)), axis=0), (self.batch_size, 1, 1, 1))
 
         # x = tf.concat([self.img, self.xy], axis=-1)
         x = self.img
         with tf.variable_scope('encoder'):
             for i in range(4):
-                x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=1)
+                x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=1)  # (bs, h, w, 128)
                 x = layers.max_pool2d(x, 2, 2)
 
         def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden):
