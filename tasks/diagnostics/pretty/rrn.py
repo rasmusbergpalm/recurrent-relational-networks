@@ -64,13 +64,14 @@ class PrettyRRN(Model):
         # x = tf.concat([self.img, self.xy], axis=-1)
         x = tf.concat([self.img, q], axis=-1)
         with tf.variable_scope('encoder'):
-            for i in range(4):
+            for i in range(7):
                 x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=1)  # (bs, h, w, 128)
                 x = layers.max_pool2d(x, 2, 2)
 
-        x = tf.reshape(x, (self.batch_size, 8 * 8 * self.n_hidden))
+        x = tf.reshape(x, (self.batch_size, self.n_hidden))
+        logits = layers.fully_connected(x, n_anchors_targets, activation_fn=None)
         # x = tf.concat([x, q], axis=1)
-        logits = mlp(x, "out", n_hid=self.n_hidden, n_out=n_anchors_targets)
+        # logits = mlp(x, "out", n_hid=self.n_hidden, n_out=n_anchors_targets)
 
         # edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, self.n ** 2, 1]), [n_edges, n_anchors_targets + self.n])
 
