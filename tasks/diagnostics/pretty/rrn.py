@@ -32,7 +32,7 @@ class PrettyRRN(Model):
         print("Building graph...")
         self.session = tf.Session(config=tf.ConfigProto(allow_soft_placement=False))
         self.global_step = tf.Variable(initial_value=0, trainable=False)
-        self.optimizer = tf.train.AdamOptimizer(1e-4)
+        self.optimizer = tf.train.AdamOptimizer(1e-3)
 
         iterator = self._iterator(self.data)
 
@@ -48,10 +48,10 @@ class PrettyRRN(Model):
                 x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=1)
                 x = layers.max_pool2d(x, 2, 2)
 
-        def mlp(x, scope, n_out=self.n_hidden):
+        def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden):
             with tf.variable_scope(scope):
                 for i in range(3):
-                    x = layers.fully_connected(x, self.n_hidden)
+                    x = layers.fully_connected(x, n_hid)
                 return layers.fully_connected(x, n_out, activation_fn=None)
 
         # self.n = 8 * 8
@@ -68,7 +68,7 @@ class PrettyRRN(Model):
         x = tf.reshape(x, (self.batch_size, 8 * 8 * self.n_hidden))
         x = tf.concat([x, question], axis=1)
 
-        logits = mlp(x, "out", n_anchors_targets)
+        logits = mlp(x, "out", n_hid=512, n_out=n_anchors_targets)
 
         # edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, self.n ** 2, 1]), [n_edges, n_anchors_targets + self.n])
 
