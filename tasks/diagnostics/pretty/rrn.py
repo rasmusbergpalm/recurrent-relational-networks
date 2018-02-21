@@ -37,7 +37,7 @@ class PrettyRRN(Model):
         iterator = self._iterator(self.data)
 
         self.img, self.anchors, self.n_jumps, self.targets = iterator.get_next()
-        self.img = tf.to_float(self.img) / 255.
+        self.img = ((1. - tf.to_float(self.img) / 255.) - 0.5)
 
         self.xy = tf.tile(tf.expand_dims(tf.transpose(tf.meshgrid(tf.linspace(0., 1., 128), tf.linspace(0., 1., 128)), (1, 2, 0)), axis=0), (self.batch_size, 1, 1, 1))
 
@@ -45,7 +45,7 @@ class PrettyRRN(Model):
         x = self.img
         with tf.variable_scope('encoder'):
             for i in range(4):
-                x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=2, normalizer_fn=layers.batch_norm)
+                x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=2)
 
         def mlp(x, scope, n_out=self.n_hidden):
             with tf.variable_scope(scope):
