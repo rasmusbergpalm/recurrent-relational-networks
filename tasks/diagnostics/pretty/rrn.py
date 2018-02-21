@@ -36,8 +36,8 @@ class PrettyRRN(Model):
 
         iterator = self._iterator(self.data)
 
-        self.img, self.anchors, self.n_jumps, self.targets = iterator.get_next()
-        self.img = ((1. - tf.to_float(self.img) / 255.) - 0.5)
+        self.org_img, self.anchors, self.n_jumps, self.targets = iterator.get_next()
+        self.img = ((1. - tf.to_float(self.org_img) / 255.) - 0.5)
 
         self.xy = tf.tile(tf.expand_dims(tf.transpose(tf.meshgrid(tf.linspace(0., 1., 128), tf.linspace(0., 1., 128)), (1, 2, 0)), axis=0), (self.batch_size, 1, 1, 1))
 
@@ -126,7 +126,7 @@ class PrettyRRN(Model):
         return loss
 
     def val_batch(self):
-        loss, summaries, step, img, anchors, jumps, targets, outputs = self.session.run([self.loss, self.summaries, self.global_step, self.img, self.anchors, self.n_jumps, self.targets, self.outputs])
+        loss, summaries, step, img, anchors, jumps, targets, outputs = self.session.run([self.loss, self.summaries, self.global_step, self.org_img, self.anchors, self.n_jumps, self.targets, self.outputs])
         self._write_summaries(self.test_writer, summaries, img, anchors, jumps, targets, outputs, step)
         return loss
 
