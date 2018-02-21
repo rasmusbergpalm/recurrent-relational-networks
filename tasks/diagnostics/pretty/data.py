@@ -1,4 +1,6 @@
 import io
+import urllib.request
+import zipfile
 
 import matplotlib
 
@@ -10,6 +12,8 @@ import random
 import tensorflow as tf
 import numpy as np
 from PIL import Image
+import os
+import json
 
 
 def fig2array(fig):
@@ -17,11 +21,40 @@ def fig2array(fig):
         fig.savefig(buf, format='png')
         plt.close(fig)
         buf.seek(0)
-        im = Image.open(buf)
-        return np.array(im.convert('RGB'))
+        return np.array(Image.open(buf))
 
 
 class PrettyClevr:
+    url = "https://www.dropbox.com/s/sxfsy28wzn8be7b/pretty-clevr.zip?dl=1"
+    base_dir = (os.environ.get('DATA_DIR') or "/tmp")
+    data_dir = base_dir + "/pretty-clevr"
+    zip_fname = base_dir + "/pretty-clevr.zip"
+
+    def output_types(self):
+        return tf.uint8, tf.int32, tf.int32, tf.int32
+
+    def output_shapes(self):
+        return (128, 128, 3), (), (), ()
+
+    def __init__(self):
+        if not os.path.exists(self.data_dir):
+            print("Downloading data...")
+
+            urllib.request.urlretrieve(self.url, self.zip_fname)
+            with zipfile.ZipFile(self.zip_fname) as f:
+                f.extractall(self.base_dir)
+        with open(self.data_dir + '/questions.csv') as qf:
+            print("Loading data...")
+            self.i2s = json.loads(qf.readline().strip())
+            qf.readline()
+            self.questions = [l.split(", ") for l in qf.readlines()]
+
+    def sample_generator(self):
+        for img_fname, anchor, n_jumps, target in random.sample(self.questions, len(self.questions)):
+            yield np.array(Image.open(self.data_dir + '/images/' + img_fname)), int(anchor), int(n_jumps), int(target)
+
+
+class PrettyClevrGenerator:
     colors = ['blue', 'green', 'red', 'cyan', 'magenta', 'yellow', 'black', 'gray']
     markers = ['o', 'v', '^', '<', '>', 's', 'P', 'X']
     s2i = {v: i for i, v in enumerate(colors + markers)}
@@ -33,12 +66,6 @@ class PrettyClevr:
         assert n <= len(self.markers), "Not enough markers defined."
         self.n = n
         self.r = 0.1
-
-    def output_types(self):
-        return tf.uint8, tf.float32, tf.int32, tf.int32, tf.int32
-
-    def output_shapes(self):
-        return (128, 128, 3), (128, 128, 2), (), (), ()
 
     def sample_generator(self):
         while True:
@@ -89,8 +116,8 @@ class PrettyClevr:
     def generate(self, n):
         gen = self.sample_generator()
         with open('questions.csv', 'w') as qf:
-            qf.write("# %s \n" % str(self.i2s))
-            qf.write("# image, anchor, jumps, target\n")
+            qf.write("%s \n" % json.dumps(self.i2s))
+            qf.write("image, anchor, jumps, target\n")
             for i in range(n):
                 img, questions = next(gen)
                 png_name = '%05d.png' % i
@@ -99,5 +126,8 @@ class PrettyClevr:
 
 
 if __name__ == '__main__':
-    d = PrettyClevr(8)
-    d.generate(10000)
+    d = PrettyClevr()
+    gen = d.sample_generator()
+    for i in range(10):
+        img, anchor, n_jumps, target = next(gen)
+        k = 0

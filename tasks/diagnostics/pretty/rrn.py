@@ -20,7 +20,8 @@ class PrettyRRN(Model):
     batch_size = 32
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
-    data = PrettyClevr(8)
+    n = 8
+    data = PrettyClevr()
     n_steps = 1
     n_hidden = 128
 
@@ -35,8 +36,10 @@ class PrettyRRN(Model):
 
         iterator = self._iterator(self.data)
 
-        self.img, self.xy, self.anchors, self.n_jumps, self.targets = iterator.get_next()
+        self.img, self.anchors, self.n_jumps, self.targets = iterator.get_next()
         self.img = tf.to_float(self.img) / 255.
+
+        self.xy = tf.tile(tf.expand_dims(tf.transpose(tf.meshgrid(tf.linspace(0., 1., 128), tf.linspace(0., 1., 128)), (1, 2, 0)), axis=0), (self.batch_size, 1, 1, 1))
 
         x = tf.concat([self.img, self.xy], axis=-1)
         with tf.variable_scope('encoder'):
@@ -51,9 +54,10 @@ class PrettyRRN(Model):
         edges = tf.constant([(i + (b * self.n), j + (b * self.n)) for b in range(self.batch_size) for i, j in edges], tf.int32)
         n_edges = tf.shape(edges)[0]
 
-        question = tf.concat([tf.one_hot(self.anchors, self.data.n_input_output), tf.one_hot(self.n_jumps, self.data.n)], axis=1)  # (bs, 24)
+        n_anchors_targets = len(self.data.i2s)
+        question = tf.concat([tf.one_hot(self.anchors, n_anchors_targets), tf.one_hot(self.n_jumps, self.n)], axis=1)  # (bs, 24)
 
-        edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, self.n ** 2, 1]), [n_edges, self.data.n_input_output + self.data.n])
+        edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, self.n ** 2, 1]), [n_edges, n_anchors_targets + self.n])
 
         n_nodes = self.n * self.batch_size
 
@@ -76,8 +80,8 @@ class PrettyRRN(Model):
                 x = layers.batch_norm(x, scope='bn')
                 x, state = lstm_cell(x, state)
 
-                logits = mlp(x, 'logits', self.data.n_input_output)
-                logits = tf.reshape(logits, (self.batch_size, self.n, self.data.n_input_output))
+                logits = mlp(x, 'logits', n_anchors_targets)
+                logits = tf.reshape(logits, (self.batch_size, self.n, n_anchors_targets))
                 logits = tf.reduce_sum(logits, axis=1)  # (bs, n_input_output)
 
                 out = tf.argmax(logits, axis=1)
@@ -134,10 +138,11 @@ class PrettyRRN(Model):
             data.output_shapes()
         ).batch(self.batch_size).prefetch(1).make_one_shot_iterator()
 
-    def _render(self, img, anchor, jump, target, output):
+    def _render(self, img, anchor, jump, target, outputs):
         fig = plt.figure(figsize=(2.56, 2.56), frameon=False)
         plt.imshow(img)
-        plt.title("%s %d t:%s a:%s" % (self.data.i2s[anchor], jump, self.data.i2s[target], self.data.i2s[output]))
+        out_str = str([self.data.i2s[str(output[0])] for output in outputs])
+        plt.title("%s %d %s %s" % (self.data.i2s[str(anchor)], jump, self.data.i2s[str(target)], out_str))
         plt.xticks([])
         plt.yticks([])
         plt.tight_layout()
@@ -145,10 +150,9 @@ class PrettyRRN(Model):
         return fig2array(fig)
 
     def _write_summaries(self, writer, summaries, img, anchors, jumps, targets, outputs, step):
-        for t, b in enumerate(outputs):
-            imgs = self._render(img[0], int(anchors[0]), int(jumps[0]), int(targets[0]), int(b[0]))
-            img_summary = ipb("img/%d" % t, imgs[None])
-            writer.add_summary(img_summary, step)
+        imgs = self._render(img[0], int(anchors[0]), int(jumps[0]), int(targets[0]), outputs)
+        img_summary = ipb("img", imgs[None])
+        writer.add_summary(img_summary, step)
 
         writer.add_summary(summaries, step)
         writer.flush()
