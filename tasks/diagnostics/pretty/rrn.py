@@ -41,10 +41,17 @@ class PrettyRRN(Model):
 
         self.xy = tf.tile(tf.expand_dims(tf.transpose(tf.meshgrid(tf.linspace(0., 1., 128), tf.linspace(0., 1., 128)), (1, 2, 0)), axis=0), (self.batch_size, 1, 1, 1))
 
-        x = tf.concat([self.img, self.xy], axis=-1)
+        # x = tf.concat([self.img, self.xy], axis=-1)
+        x = self.img
         with tf.variable_scope('encoder'):
             for i in range(4):
                 x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=2, normalizer_fn=layers.batch_norm)
+
+        def mlp(x, scope, n_out=self.n_hidden):
+            with tf.variable_scope(scope):
+                for i in range(3):
+                    x = layers.fully_connected(x, self.n_hidden)
+                return layers.fully_connected(x, n_out, activation_fn=None)
 
         self.n = 8 * 8
         n_nodes = self.batch_size * self.n
@@ -57,15 +64,14 @@ class PrettyRRN(Model):
         n_anchors_targets = len(self.data.i2s)
         question = tf.concat([tf.one_hot(self.anchors, n_anchors_targets), tf.one_hot(self.n_jumps, self.n)], axis=1)  # (bs, 24)
 
+        x = tf.reshape(x, (self.batch_size, -1))
+        x = tf.concat([x, question], axis=1)
+
+        logits = mlp(x, "out", n_anchors_targets)
+
         edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, self.n ** 2, 1]), [n_edges, n_anchors_targets + self.n])
 
         n_nodes = self.n * self.batch_size
-
-        def mlp(x, scope, n_out=self.n_hidden):
-            with tf.variable_scope(scope):
-                for i in range(3):
-                    x = layers.fully_connected(x, self.n_hidden)
-                return layers.fully_connected(x, n_out, activation_fn=None)
 
         with tf.variable_scope('steps'):
             self.outputs = []
@@ -74,15 +80,15 @@ class PrettyRRN(Model):
             lstm_cell = LSTMCell(self.n_hidden)
             state = lstm_cell.zero_state(n_nodes, tf.float32)
             for step in range(self.n_steps):
-                x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
+                # x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                 # x = mlp(tf.concat([x, x0], axis=1), 'post')
                 # tf.summary.histogram("activations/%d" % step, x)
                 # x = layers.batch_norm(x, scope='bn')
                 # x, state = lstm_cell(x, state)
 
-                logits = mlp(x, 'logits', n_anchors_targets)
-                logits = tf.reshape(logits, (self.batch_size, self.n, n_anchors_targets))
-                logits = tf.reduce_sum(logits, axis=1)  # (bs, n_input_output)
+                # logits = mlp(x, 'logits', n_anchors_targets)
+                # logits = tf.reshape(logits, (self.batch_size, self.n, n_anchors_targets))
+                # logits = tf.reduce_sum(logits, axis=1)  # (bs, n_anchors_targets)
 
                 out = tf.argmax(logits, axis=1)
                 self.outputs.append(out)
