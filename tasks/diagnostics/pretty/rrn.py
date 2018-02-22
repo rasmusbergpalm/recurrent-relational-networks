@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 
 class PrettyRRN(Model):
-    batch_size = 128
+    batch_size = 64
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     n_objects = 8
@@ -39,8 +39,11 @@ class PrettyRRN(Model):
         x = ((1. - tf.to_float(self.org_img) / 255.) - 0.5)  # (bs, h, w, 3)
 
         with tf.variable_scope('encoder'):
-            for i in range(5):
-                x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=2)  # (bs, 4, 4, 128)
+            x = layers.conv2d(x, num_outputs=32, kernel_size=3, stride=2)  # 64
+            x = layers.conv2d(x, num_outputs=64, kernel_size=3, stride=2)  # 32
+            x = layers.conv2d(x, num_outputs=128, kernel_size=3, stride=2)  # 16
+            x = layers.conv2d(x, num_outputs=256, kernel_size=3, stride=2)  # 8
+            x = layers.conv2d(x, num_outputs=512, kernel_size=3, stride=2)  # 4
 
         def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden):
             with tf.variable_scope(scope):
@@ -49,7 +52,7 @@ class PrettyRRN(Model):
                 return layers.fully_connected(x, n_out, activation_fn=None)
 
         n_nodes = 4 * 4
-        x = tf.reshape(x, (self.batch_size * n_nodes, self.n_hidden))
+        x = tf.reshape(x, (self.batch_size * n_nodes, 512))
 
         edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes)]
         edges = tf.constant([(i + (b * n_nodes), j + (b * n_nodes)) for b in range(self.batch_size) for i, j in edges], tf.int32)
@@ -65,9 +68,14 @@ class PrettyRRN(Model):
             self.outputs = []
             losses = []
             for step in range(self.n_steps):
-                x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
+                x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn', n_hid=2000, n_out=2000))
                 x = tf.reduce_sum(tf.reshape(x, (self.batch_size, n_nodes, self.n_hidden)), axis=1)
-                logits = mlp(x, "out", n_out=n_anchors_targets)
+
+                x = layers.fully_connected(x, 2000)
+                x = layers.fully_connected(x, 1000)
+                x = layers.fully_connected(x, 500)
+                x = layers.fully_connected(x, 100)
+                logits = layers.fully_connected(x, n_anchors_targets, activation_fn=None)
 
                 out = tf.argmax(logits, axis=1)
                 self.outputs.append(out)
