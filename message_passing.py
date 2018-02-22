@@ -24,8 +24,7 @@ def message_passing(nodes, edges, edge_features, message_fn, edge_keep_prob=1.0)
 
     n_output = messages.get_shape()[1].value
 
-    idx_i, idx_j = tf.split(edges, 2, 1)
     out_shape = (n_nodes, n_output)
-    updates = tf.scatter_nd(idx_j, messages, out_shape)
+    updates = tf.scatter_nd(tf.reshape(edges[:, 1], (-1, 1)), messages, out_shape)
 
     return updates
