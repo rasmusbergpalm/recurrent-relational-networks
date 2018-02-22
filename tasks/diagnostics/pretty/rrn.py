@@ -75,7 +75,6 @@ class PrettyRRN(Model):
                     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets, logits=logits) / tf.log(2.))
                     losses.append(loss)
 
-                    tf.summary.scalar('steps/%d/loss' % step, loss)
                     tf.get_variable_scope().reuse_variables()
 
             return losses, outputs
