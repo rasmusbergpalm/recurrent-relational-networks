@@ -16,13 +16,14 @@ import matplotlib.pyplot as plt
 
 
 class PrettyRRN(Model):
-    batch_size = 64
+    batch_size = 512
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     n_objects = 8
     data = PrettyClevr()
     n_steps = 1
     n_hidden = 128
+    devices = util.get_devices()
 
     def __init__(self):
         super().__init__()
@@ -34,16 +35,8 @@ class PrettyRRN(Model):
         self.optimizer = tf.train.AdamOptimizer(1e-4)
 
         iterator = self._iterator(self.data)
-
-        self.org_img, positions, colors, self.anchors, self.n_jumps, self.targets = iterator.get_next()
-        x = ((1. - tf.to_float(self.org_img) / 255.) - 0.5)  # (bs, h, w, 3)
-
-        with tf.variable_scope('encoder'):
-            x = layers.conv2d(x, num_outputs=32, kernel_size=3, stride=2)  # 64
-            x = layers.conv2d(x, num_outputs=64, kernel_size=3, stride=2)  # 32
-            x = layers.conv2d(x, num_outputs=128, kernel_size=3, stride=2)  # 16
-            x = layers.conv2d(x, num_outputs=256, kernel_size=3, stride=2)  # 8
-            x = layers.conv2d(x, num_outputs=512, kernel_size=3, stride=2)  # 4
+        n_nodes = 4 * 4
+        n_anchors_targets = len(self.data.i2s)
 
         def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden):
             with tf.variable_scope(scope):
@@ -51,39 +44,46 @@ class PrettyRRN(Model):
                     x = layers.fully_connected(x, n_hid)
                 return layers.fully_connected(x, n_out, activation_fn=None)
 
-        n_nodes = 4 * 4
-        x = tf.reshape(x, (self.batch_size * n_nodes, 512))
+        def forward(img, anchors, n_jumps, targets):
+            bs = self.batch_size // len(self.devices)
+            edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes)]
+            edges = tf.constant([(i + (b * n_nodes), j + (b * n_nodes)) for b in range(bs) for i, j in edges], tf.int32)
 
-        edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes)]
-        edges = tf.constant([(i + (b * n_nodes), j + (b * n_nodes)) for b in range(self.batch_size) for i, j in edges], tf.int32)
-        n_edges = tf.shape(edges)[0]
+            x = ((1. - tf.to_float(img) / 255.) - 0.5)  # (bs, h, w, 3)
 
-        n_anchors_targets = len(self.data.i2s)
-        question = tf.concat([tf.one_hot(self.anchors, n_anchors_targets), tf.one_hot(self.n_jumps, self.n_objects)], axis=1)  # (bs, 24)
-        question = mlp(question, "q")
+            with tf.variable_scope('encoder'):
+                for i in range(5):
+                    x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=2)  # (bs, 4, 4, 128)
 
-        edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes ** 2, 1]), [n_edges, self.n_hidden])
+            x = tf.reshape(x, (bs * n_nodes, self.n_hidden))
+            question = tf.concat([tf.one_hot(anchors, n_anchors_targets), tf.one_hot(n_jumps, self.n_objects)], axis=1)  # (bs, 24)
+            question = mlp(question, "q")
+            n_edges = tf.shape(edges)[0]
 
-        with tf.variable_scope('steps'):
-            self.outputs = []
-            losses = []
-            for step in range(self.n_steps):
-                x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn', n_hid=2000, n_out=2000))
-                x = tf.reduce_sum(tf.reshape(x, (self.batch_size, n_nodes, self.n_hidden)), axis=1)
+            edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes ** 2, 1]), [n_edges, self.n_hidden])
 
-                x = layers.fully_connected(x, 2000)
-                x = layers.fully_connected(x, 1000)
-                x = layers.fully_connected(x, 500)
-                x = layers.fully_connected(x, 100)
-                logits = layers.fully_connected(x, n_anchors_targets, activation_fn=None)
+            with tf.variable_scope('steps'):
+                outputs = []
+                losses = []
+                for step in range(self.n_steps):
+                    x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
+                    x = tf.reduce_sum(tf.reshape(x, (bs, n_nodes, self.n_hidden)), axis=1)
+                    logits = mlp(x, "out", n_out=n_anchors_targets)
 
-                out = tf.argmax(logits, axis=1)
-                self.outputs.append(out)
-                loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.targets, logits=logits) / tf.log(2.))
-                losses.append(loss)
+                    out = tf.argmax(logits, axis=1)
+                    outputs.append(out)
+                    loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets, logits=logits) / tf.log(2.))
+                    losses.append(loss)
 
-                tf.summary.scalar('steps/%d/loss' % step, loss)
-                tf.get_variable_scope().reuse_variables()
+                    tf.summary.scalar('steps/%d/loss' % step, loss)
+                    tf.get_variable_scope().reuse_variables()
+
+            return losses, outputs
+
+        self.org_img, positions, colors, self.anchors, self.n_jumps, self.targets = iterator.get_next()
+        losses, outputs = util.batch_parallel(forward, self.devices, img=self.org_img, anchors=self.anchors, n_jumps=self.n_jumps, targets=self.targets)
+        losses = tf.reduce_mean(losses)
+        self.outputs = tf.concat(outputs, axis=0)
 
         self.loss = tf.reduce_mean(losses)
         tf.summary.scalar('loss', self.loss)

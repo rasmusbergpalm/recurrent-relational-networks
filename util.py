@@ -58,3 +58,30 @@ def average_gradients(tower_grads, name='avg-grads'):
             grad_and_var = (grad, v)
             average_grads.append(grad_and_var)
         return average_grads
+
+
+def batch_parallel(map_fn, devices, **kwargs):
+    """
+    Parallelize map_fn across devices.
+
+    :param map_fn: function that takes kwargs and returns a tuple of tensors
+    :param devices: A list of devices to parallelize over
+    :param kwargs: kwargs of input to map, will be split along axis 0.
+    :return: The outputs of map_fn
+    The inner list is the output from each device.
+    """
+    in_splits = {}
+    for k, v in kwargs.items():
+        in_splits[k] = tf.split(v, len(devices))
+
+    out_splits = {}
+    for i, device in enumerate(devices):
+        with tf.device(device):
+            with tf.variable_scope(tf.get_variable_scope(), reuse=i > 0):
+                outs = map_fn(**{k: v[i] for k, v in in_splits.items()})
+                for j, out in enumerate(outs):
+                    if j not in out_splits:
+                        out_splits[j] = []
+                    out_splits[j].append(out)
+
+    return [out_splits[i] for i in range(len(out_splits))]
