@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 
 class PrettyRRN(Model):
-    batch_size = 512
+    batch_size = 2048
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     n_objects = 8
