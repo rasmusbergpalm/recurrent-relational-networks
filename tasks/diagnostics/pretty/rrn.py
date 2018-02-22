@@ -7,6 +7,7 @@ from tensorflow.contrib import layers
 from tensorflow.python.data import Dataset
 
 import util
+from message_passing import message_passing
 from model import Model
 from tasks.diagnostics.pretty.data import PrettyClevr, fig2array
 
@@ -18,7 +19,7 @@ class PrettyRRN(Model):
     batch_size = 32
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
-    n = 8
+    n_objects = 8
     data = PrettyClevr()
     n_steps = 1
     n_hidden = 128
@@ -34,9 +35,12 @@ class PrettyRRN(Model):
 
         iterator = self._iterator(self.data)
 
-        self.org_img, self.positions, self.colors, self.anchors, self.n_jumps, self.targets = iterator.get_next()
-        colors = tf.one_hot(self.colors, 8)  # (bs, 8, 8)
-        x = tf.reshape(colors, (self.batch_size, 64))
+        self.org_img, positions, colors, self.anchors, self.n_jumps, self.targets = iterator.get_next()
+        x = ((1. - tf.to_float(self.org_img) / 255.) - 0.5)  # (bs, h, w, 3)
+
+        with tf.variable_scope('encoder'):
+            for i in range(5):
+                x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=2)  # (bs, 4, 4, 128)
 
         def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden):
             with tf.variable_scope(scope):
@@ -44,33 +48,26 @@ class PrettyRRN(Model):
                     x = layers.fully_connected(x, n_hid)
                 return layers.fully_connected(x, n_out, activation_fn=None)
 
-        n_anchors_targets = 16
-        question = tf.concat([tf.one_hot(self.anchors, n_anchors_targets), tf.one_hot(self.n_jumps, self.n)], axis=1)  # (bs, 24)
+        n_nodes = 4 * 4
+        x = tf.reshape(x, (self.batch_size * n_nodes, self.n_hidden))
 
-        x = tf.concat([x, question], axis=1)
+        edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes)]
+        edges = tf.constant([(i + (b * n_nodes), j + (b * n_nodes)) for b in range(self.batch_size) for i, j in edges], tf.int32)
+        n_edges = tf.shape(edges)[0]
 
-        logits = mlp(x, "out", n_hid=self.n_hidden, n_out=n_anchors_targets)
+        n_anchors_targets = len(self.data.i2s)
+        question = tf.concat([tf.one_hot(self.anchors, n_anchors_targets), tf.one_hot(self.n_jumps, self.n_objects)], axis=1)  # (bs, 24)
+        question = mlp(question, "q")
 
-        # edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, self.n ** 2, 1]), [n_edges, n_anchors_targets + self.n])
-
-        # n_nodes = self.n * self.batch_size
+        edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes ** 2, 1]), [n_edges, self.n_hidden])
 
         with tf.variable_scope('steps'):
             self.outputs = []
             losses = []
-            # x0 = x
-            # lstm_cell = LSTMCell(self.n_hidden)
-            # state = lstm_cell.zero_state(n_nodes, tf.float32)
             for step in range(self.n_steps):
-                # x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
-                # x = mlp(tf.concat([x, x0], axis=1), 'post')
-                # tf.summary.histogram("activations/%d" % step, x)
-                # x = layers.batch_norm(x, scope='bn')
-                # x, state = lstm_cell(x, state)
-
-                # logits = mlp(x, 'logits', n_anchors_targets)
-                # logits = tf.reshape(logits, (self.batch_size, self.n, n_anchors_targets))
-                # logits = tf.reduce_sum(logits, axis=1)  # (bs, n_anchors_targets)
+                x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
+                x = tf.reduce_sum(tf.reshape(x, (self.batch_size, n_nodes, self.n_hidden)), axis=1)
+                logits = mlp(x, "out", n_out=n_anchors_targets)
 
                 out = tf.argmax(logits, axis=1)
                 self.outputs.append(out)
@@ -89,7 +86,6 @@ class PrettyRRN(Model):
             tf.summary.histogram("vars/" + v.name, v)
             tf.summary.histogram("g_ratio/" + v.name, g / (v + 1e-8))
 
-        # gvs = [(tf.clip_by_value(g, -1.0, 1.0), v) for g, v in gvs]
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
             self.train_step = self.optimizer.apply_gradients(gvs, global_step=self.global_step)
