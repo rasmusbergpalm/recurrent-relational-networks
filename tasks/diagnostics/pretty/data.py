@@ -1,4 +1,5 @@
 import io
+import tarfile
 import urllib.request
 import zipfile
 
@@ -25,35 +26,45 @@ def fig2array(fig):
 
 
 class PrettyClevr:
-    url = "https://www.dropbox.com/s/sxfsy28wzn8be7b/pretty-clevr.zip?dl=1"
+    url = "https://www.dropbox.com/s/3jaeq1ugcfs4jf3/pretty-clevr.tgz?dl=1"
     base_dir = (os.environ.get('DATA_DIR') or "/tmp")
     data_dir = base_dir + "/pretty-clevr"
-    zip_fname = base_dir + "/pretty-clevr.zip"
-
-    def output_types(self):
-        return tf.uint8, tf.int32, tf.int32, tf.int32
-
-    def output_shapes(self):
-        return (128, 128, 3), (), (), ()
+    tgz_fname = base_dir + "/pretty-clevr.tgz"
 
     def __init__(self):
         if not os.path.exists(self.data_dir):
             print("Downloading data...")
 
-            urllib.request.urlretrieve(self.url, self.zip_fname)
-            with zipfile.ZipFile(self.zip_fname) as f:
+            urllib.request.urlretrieve(self.url, self.tgz_fname)
+            with tarfile.open(self.tgz_fname, "r:gz") as f:
                 f.extractall(self.base_dir)
+
         with open(self.data_dir + '/questions.csv') as qf:
             print("Loading data...")
-            self.i2s = json.loads(qf.readline().strip())
-            qf.readline()
-            self.questions = [l.split(", ") for l in qf.readlines()]
+            with open(self.data_dir + '/dict.json') as fp:
+                self.s2i = json.load(fp)
+                self.i2s = {i: s for s, i in self.s2i.items()}
+
+            self.questions = [l.strip().split(", ") for l in qf.readlines()]
+
+    def output_types(self):
+        return tf.uint8, tf.float32, tf.int32, tf.int32, tf.int32, tf.int32
+
+    def output_shapes(self):
+        return (128, 128, 3), (8, 2), (8,), (), (), ()
 
     def sample_generator(self):
         while True:
-            for img_fname, anchor, n_jumps, target in random.sample(self.questions, len(self.questions)):
-                if n_jumps == "0" and anchor in [str(i) for i in range(8)]:
-                    yield np.array(Image.open(self.data_dir + '/images/' + img_fname)), int(anchor), int(n_jumps), int(target)
+            for img_fname, json_name, anchor, n_jumps, target in random.sample(self.questions, len(self.questions)):
+                if n_jumps == "0":
+                    with open(self.data_dir + '/states/' + json_name) as fp:
+                        objects = json.load(fp)
+                        positions = np.array([o['p'] for o in objects])
+                        colors = [self.s2i[o['c']] for o in objects]
+
+                    img = np.array(Image.open(self.data_dir + '/images/' + img_fname).convert("RGB"))
+
+                    yield img, positions, colors, self.s2i[anchor], int(n_jumps), self.s2i[target]
 
 
 class PrettyClevrGenerator:
@@ -112,6 +123,9 @@ class PrettyClevrGenerator:
 
     def generate(self, n):
         gen = self.sample_generator()
+        with open('dict.json') as fp:
+            json.dump(self.s2i, fp)
+
         with open('questions.csv', 'w') as qf:
             for i in range(n):
                 objects, img, questions = next(gen)

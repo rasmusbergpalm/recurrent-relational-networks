@@ -4,11 +4,9 @@ import matplotlib
 import tensorflow as tf
 from tensorboard.plugins.image.summary import pb as ipb
 from tensorflow.contrib import layers
-from tensorflow.contrib.rnn import LSTMCell
 from tensorflow.python.data import Dataset
 
 import util
-from message_passing import message_passing
 from model import Model
 from tasks.diagnostics.pretty.data import PrettyClevr, fig2array
 
@@ -36,17 +34,9 @@ class PrettyRRN(Model):
 
         iterator = self._iterator(self.data)
 
-        self.org_img, self.anchors, self.n_jumps, self.targets = iterator.get_next()
-        self.img = ((1. - tf.to_float(self.org_img) / 255.) - 0.5)  # (bs, h, w, 3)
-
-        # self.xy = tf.tile(tf.expand_dims(tf.transpose(tf.meshgrid(tf.linspace(0., 1., 128), tf.linspace(0., 1., 128)), (1, 2, 0)), axis=0), (self.batch_size, 1, 1, 1))
-
-        # x = tf.concat([self.img, self.xy], axis=-1)
-        x = self.img
-        with tf.variable_scope('encoder'):
-            for i in range(4):
-                x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=1)  # (bs, h, w, 128)
-                x = layers.max_pool2d(x, 2, 2)
+        self.org_img, self.positions, self.colors, self.anchors, self.n_jumps, self.targets = iterator.get_next()
+        colors = tf.one_hot(self.colors, 8)  # (bs, 8, 8)
+        x = tf.reshape(colors, (self.batch_size, 64))
 
         def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden):
             with tf.variable_scope(scope):
@@ -54,18 +44,9 @@ class PrettyRRN(Model):
                     x = layers.fully_connected(x, n_hid)
                 return layers.fully_connected(x, n_out, activation_fn=None)
 
-        # self.n = 8 * 8
-        # n_nodes = self.batch_size * self.n
-        # x = tf.reshape(x, (n_nodes, self.n_hidden))
-
-        # edges = [(i, j) for i in range(self.n) for j in range(self.n)]
-        # edges = tf.constant([(i + (b * self.n), j + (b * self.n)) for b in range(self.batch_size) for i, j in edges], tf.int32)
-        # n_edges = tf.shape(edges)[0]
-
-        n_anchors_targets = len(self.data.i2s)
+        n_anchors_targets = 16
         question = tf.concat([tf.one_hot(self.anchors, n_anchors_targets), tf.one_hot(self.n_jumps, self.n)], axis=1)  # (bs, 24)
 
-        x = tf.reshape(x, (self.batch_size, 8 * 8 * self.n_hidden))
         x = tf.concat([x, question], axis=1)
 
         logits = mlp(x, "out", n_hid=self.n_hidden, n_out=n_anchors_targets)
@@ -148,8 +129,8 @@ class PrettyRRN(Model):
     def _render(self, img, anchor, jump, target, outputs):
         fig = plt.figure(figsize=(2.56, 2.56), frameon=False)
         plt.imshow(img)
-        out_str = str([self.data.i2s[str(output[0])] for output in outputs])
-        plt.title("%s %d %s %s" % (self.data.i2s[str(anchor)], jump, self.data.i2s[str(target)], out_str))
+        out_str = str([self.data.i2s[output[0]] for output in outputs])
+        plt.title("%s %d %s %s" % (self.data.i2s[anchor], jump, self.data.i2s[target], out_str))
         plt.xticks([])
         plt.yticks([])
         plt.tight_layout()
