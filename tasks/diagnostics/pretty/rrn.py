@@ -82,7 +82,7 @@ class PrettyRRN(Model):
         self.org_img, positions, colors, self.anchors, self.n_jumps, self.targets = iterator.get_next()
         losses, outputs = util.batch_parallel(forward, self.devices, img=self.org_img, anchors=self.anchors, n_jumps=self.n_jumps, targets=self.targets)
         losses = tf.reduce_mean(losses)
-        self.outputs = tf.concat(outputs, axis=0)
+        self.outputs = tf.concat(outputs, axis=1)  # (splits, steps, bs)
 
         self.loss = tf.reduce_mean(losses)
         tf.summary.scalar('loss', self.loss)
