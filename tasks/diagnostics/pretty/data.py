@@ -1,4 +1,3 @@
-import glob
 import io
 import tarfile
 import urllib.request
@@ -16,7 +15,6 @@ import numpy as np
 from PIL import Image
 import os
 import json
-import time
 
 
 def fig2array(fig):
@@ -49,8 +47,6 @@ class PrettyClevr:
 
             self.questions = [l.strip().split(", ") for l in qf.readlines()]
 
-        self.images = {img_fname: np.array(Image.open(img_fname).convert("RGB")) for img_fname in glob.glob(self.data_dir + '/images/*.png')}
-
     def output_types(self):
         return tf.uint8, tf.float32, tf.int32, tf.int32, tf.int32, tf.int32
 
@@ -58,16 +54,17 @@ class PrettyClevr:
         return (128, 128, 3), (8, 2), (8,), (), (), ()
 
     def sample_generator(self):
-        for img_fname, json_name, anchor, n_jumps, target in random.sample(self.questions, len(self.questions)):
-            if n_jumps == "0":
-                with open(self.data_dir + '/states/' + json_name) as fp:
-                    objects = json.load(fp)
-                    positions = np.array([o['p'] for o in objects])
-                    colors = [self.s2i[o['c']] for o in objects]
+        while True:
+            for img_fname, json_name, anchor, n_jumps, target in random.sample(self.questions, len(self.questions)):
+                if n_jumps == "0":
+                    with open(self.data_dir + '/states/' + json_name) as fp:
+                        objects = json.load(fp)
+                        positions = np.array([o['p'] for o in objects])
+                        colors = [self.s2i[o['c']] for o in objects]
 
-                img = self.images[self.data_dir + '/images/' + img_fname]
+                    img = np.array(Image.open(self.data_dir + '/images/' + img_fname).convert("RGB"))
 
-                yield img, positions, colors, self.s2i[anchor], int(n_jumps), self.s2i[target]
+                    yield img, positions, colors, self.s2i[anchor], int(n_jumps), self.s2i[target]
 
 
 class PrettyClevrGenerator:
@@ -141,10 +138,5 @@ class PrettyClevrGenerator:
 
 
 if __name__ == '__main__':
-    d = PrettyClevr()
-    gen = d.sample_generator()
-    start = time.perf_counter()
-    for i in range(10000):
-        next(gen)
-
-    print((i + 1) / (time.perf_counter() - start), "Hz")
+    d = PrettyClevrGenerator(8)
+    d.generate(10000)
