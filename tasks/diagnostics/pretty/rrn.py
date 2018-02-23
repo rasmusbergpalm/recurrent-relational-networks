@@ -93,9 +93,9 @@ class PrettyRRN(Model):
             tf.summary.histogram("vars/" + v.name, v)
             tf.summary.histogram("g_ratio/" + v.name, g / (v + 1e-8))
 
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        with tf.control_dependencies(update_ops):
-            self.train_step = self.optimizer.apply_gradients(gvs, global_step=self.global_step)
+        # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        # with tf.control_dependencies(update_ops):
+        self.train_step = self.optimizer.apply_gradients(gvs, global_step=self.global_step)
 
         self.session.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver()
