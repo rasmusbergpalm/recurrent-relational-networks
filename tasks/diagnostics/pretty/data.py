@@ -50,6 +50,13 @@ class PrettyClevr:
             self.questions = [l.strip().split(", ") for l in qf.readlines()]
 
         self.images = {img_fname: np.array(Image.open(img_fname).convert("RGB")) for img_fname in glob.glob(self.data_dir + '/images/*.png')}
+        self.objects = {}
+        for obj_fname in glob.glob(self.data_dir + '/states/*.json'):
+            with open(obj_fname) as fp:
+                objects = json.load(fp)
+                positions = np.array([o['p'] for o in objects])
+                colors = [self.s2i[o['c']] for o in objects]
+                self.objects[obj_fname] = (positions, colors)
 
     def output_types(self):
         return tf.uint8, tf.float32, tf.int32, tf.int32, tf.int32, tf.int32
@@ -61,12 +68,8 @@ class PrettyClevr:
         while True:
             for img_fname, json_name, anchor, n_jumps, target in random.sample(self.questions, len(self.questions)):
                 if n_jumps == "0":
-                    with open(self.data_dir + '/states/' + json_name) as fp:
-                        objects = json.load(fp)
-                        positions = np.array([o['p'] for o in objects])
-                        colors = [self.s2i[o['c']] for o in objects]
-
-                    img = np.array(self.images[self.data_dir + '/images/' + img_fname], copy=True)
+                    img = self.images[self.data_dir + '/images/' + img_fname]
+                    positions, colors = self.objects[self.data_dir + '/states/' + json_name]
 
                     yield img, positions, colors, self.s2i[anchor], int(n_jumps), self.s2i[target]
 
