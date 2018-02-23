@@ -78,7 +78,7 @@ class PrettyRRN(Model):
                     x, state = lstm_cell(x, state)
 
                     logits = mlp(x, "out", n_out=n_anchors_targets)
-                    logits = tf.reshape(logits, (self.batch_size, n_nodes, n_anchors_targets))
+                    logits = tf.reshape(logits, (bs, n_nodes, n_anchors_targets))
                     logits = tf.reduce_sum(logits, axis=1)
 
                     out = tf.argmax(logits, axis=1)
