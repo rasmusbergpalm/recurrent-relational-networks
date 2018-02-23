@@ -24,6 +24,7 @@ class PrettyRRN(Model):
     n_steps = 1
     n_hidden = 128
 
+
     def __init__(self):
         super().__init__()
         self.name = "%s %s" % (self.revision, self.message)
