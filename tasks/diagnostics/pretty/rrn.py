@@ -53,13 +53,12 @@ class PrettyRRN(Model):
 
         edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes)]
         edges = tf.constant([(i + (b * n_nodes), j + (b * n_nodes)) for b in range(self.batch_size) for i, j in edges], tf.int32)
-        n_edges = tf.shape(edges)[0]
 
         n_anchors_targets = len(self.data.i2s)
         question = tf.concat([tf.one_hot(self.anchors, n_anchors_targets), tf.one_hot(self.n_jumps, self.n_objects)], axis=1)  # (bs, 24)
         question = mlp(question, "q")
 
-        edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes ** 2, 1]), [n_edges, self.n_hidden])
+        edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes ** 2, 1]), [(n_nodes ** 2 * self.batch_size), self.n_hidden])
 
         with tf.variable_scope('steps'):
             self.outputs = []
