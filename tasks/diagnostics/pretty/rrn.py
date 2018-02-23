@@ -6,6 +6,7 @@ from tensorboard.plugins.image.summary import pb as ipb
 from tensorboard.plugins.scalar.summary import pb as spb
 from tensorflow.contrib import layers
 from tensorflow.python.data import Dataset
+from tensorflow.contrib.rnn import LSTMCell
 
 import util
 from message_passing import message_passing
@@ -23,7 +24,7 @@ class PrettyRRN(Model):
     message = os.environ.get('MESSAGE')
     n_objects = 8
     data = PrettyClevr()
-    n_steps = 1
+    n_steps = 8
     n_hidden = 128
     devices = util.get_devices()
 
@@ -67,9 +68,14 @@ class PrettyRRN(Model):
             with tf.variable_scope('steps'):
                 outputs = []
                 losses = []
+                x0 = x
+                lstm_cell = LSTMCell(self.n_hidden)
+                state = lstm_cell.zero_state(n_nodes, tf.float32)
                 for step in range(self.n_steps):
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
-                    x = tf.reduce_sum(tf.reshape(x, (bs, n_nodes, self.n_hidden)), axis=1)
+                    x = mlp(tf.concat([x, x0], axis=1), 'post')
+                    x = layers.batch_norm(x, scope='bn')
+                    x, state = lstm_cell(x, state)
                     logits = mlp(x, "out", n_out=n_anchors_targets)
 
                     out = tf.argmax(logits, axis=1)
@@ -95,7 +101,9 @@ class PrettyRRN(Model):
             tf.summary.histogram("vars/" + v.name, v)
             tf.summary.histogram("g_ratio/" + v.name, g / (v + 1e-8))
 
-        self.train_step = self.optimizer.apply_gradients(gvs, global_step=self.global_step)
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            self.train_step = self.optimizer.apply_gradients(gvs, global_step=self.global_step)
 
         self.session.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver()
@@ -141,12 +149,13 @@ class PrettyRRN(Model):
         return fig2array(fig)
 
     def _write_summaries(self, writer, summaries, img, anchors, jumps, targets, outputs, step):
-        equal = outputs[0] == targets
-        for i in range(8):
-            jumps_i = jumps == i
-            if any(jumps_i):
-                acc = np.mean(equal[jumps_i])
-                writer.add_summary(spb("acc/%d" % i, acc), step)
+        for t in range(self.n_steps):
+            equal = outputs[t] == targets
+            for i in range(8):
+                jumps_i = jumps == i
+                if any(jumps_i):
+                    acc = np.mean(equal[jumps_i])
+                    writer.add_summary(spb("acc/%d" % i, acc), step)
 
         imgs = self._render(img[0], int(anchors[0]), int(jumps[0]), int(targets[0]), outputs)
         img_summary = ipb("img", imgs[None])
