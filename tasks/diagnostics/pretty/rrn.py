@@ -38,7 +38,7 @@ class PrettyRRN(Model):
         self.optimizer = tf.train.AdamOptimizer(1e-4)
 
         iterator = self._iterator(self.data)
-        n_nodes = 4 * 4
+        n_nodes = 8
         n_anchors_targets = len(self.data.i2s)
 
         def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden):
@@ -47,18 +47,32 @@ class PrettyRRN(Model):
                     x = layers.fully_connected(x, n_hid)
                 return layers.fully_connected(x, n_out, activation_fn=None)
 
-        def forward(img, anchors, n_jumps, targets):
+        def forward(img, anchors, n_jumps, targets, positions, colors):
+            """
+            :param img: (bs, 128, 128, 3)
+            :param anchors: (bs,)
+            :param n_jumps: (bs,)
+            :param targets: (bs,)
+            :param positions: (bs, 8, 2)
+            :param colors: (bs, 8)
+            """
             bs = self.batch_size // len(self.devices)
             edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes)]
             edges = tf.constant([(i + (b * n_nodes), j + (b * n_nodes)) for b in range(bs) for i, j in edges], tf.int32)
 
+            """
             x = ((1. - tf.to_float(img) / 255.) - 0.5)  # (bs, h, w, 3)
-
             with tf.variable_scope('encoder'):
                 for i in range(5):
                     x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=2)  # (bs, 4, 4, 128)
-
             x = tf.reshape(x, (bs * n_nodes, self.n_hidden))
+            """
+
+            positions = tf.reshape(positions, (bs * n_nodes, 2))
+            colors = tf.reshape(tf.one_hot(colors, 8), (bs * n_nodes, 8))
+            x = tf.concat([positions, colors], axis=1)
+            x = mlp(x, "encoder")
+
             question = tf.concat([tf.one_hot(anchors, n_anchors_targets), tf.one_hot(n_jumps, self.n_objects)], axis=1)  # (bs, 24)
             question = mlp(question, "q")
             n_edges = tf.shape(edges)[0]
@@ -91,7 +105,7 @@ class PrettyRRN(Model):
             return losses, outputs
 
         self.org_img, positions, colors, self.anchors, self.n_jumps, self.targets = iterator.get_next()
-        losses, outputs = util.batch_parallel(forward, self.devices, img=self.org_img, anchors=self.anchors, n_jumps=self.n_jumps, targets=self.targets)
+        losses, outputs = util.batch_parallel(forward, self.devices, img=self.org_img, anchors=self.anchors, n_jumps=self.n_jumps, targets=self.targets, positions=positions, colors=colors)
         losses = tf.reduce_mean(losses)
         self.outputs = tf.concat(outputs, axis=1)  # (splits, steps, bs)
 
