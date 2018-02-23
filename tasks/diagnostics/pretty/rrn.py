@@ -70,7 +70,7 @@ class PrettyRRN(Model):
                 losses = []
                 x0 = x
                 lstm_cell = LSTMCell(self.n_hidden)
-                state = lstm_cell.zero_state(n_nodes, tf.float32)
+                state = lstm_cell.zero_state(n_nodes * bs, tf.float32)
                 for step in range(self.n_steps):
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                     x = mlp(tf.concat([x, x0], axis=1), 'post')
