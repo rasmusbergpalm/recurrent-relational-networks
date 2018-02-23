@@ -145,7 +145,7 @@ if __name__ == '__main__':
     d = PrettyClevr()
     gen = d.sample_generator()
     start = time.perf_counter()
-    for i in range(10000):
+    for i in range(100000):
         next(gen)
 
     print((i + 1) / (time.perf_counter() - start), "Hz")
