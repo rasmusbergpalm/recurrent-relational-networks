@@ -67,11 +67,10 @@ class PrettyClevr:
     def sample_generator(self):
         while True:
             for img_fname, json_name, anchor, n_jumps, target in random.sample(self.questions, len(self.questions)):
-                if n_jumps == "0":
-                    img = self.images[self.data_dir + '/images/' + img_fname]
-                    positions, colors = self.objects[self.data_dir + '/states/' + json_name]
+                img = self.images[self.data_dir + '/images/' + img_fname]
+                positions, colors = self.objects[self.data_dir + '/states/' + json_name]
 
-                    yield img, positions, colors, self.s2i[anchor], int(n_jumps), self.s2i[target]
+                yield img, positions, colors, self.s2i[anchor], int(n_jumps), self.s2i[target]
 
 
 class PrettyClevrGenerator:

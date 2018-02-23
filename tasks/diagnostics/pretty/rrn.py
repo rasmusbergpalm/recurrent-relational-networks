@@ -3,6 +3,7 @@ import os
 import matplotlib
 import tensorflow as tf
 from tensorboard.plugins.image.summary import pb as ipb
+from tensorboard.plugins.scalar.summary import pb as spb
 from tensorflow.contrib import layers
 from tensorflow.python.data import Dataset
 
@@ -10,6 +11,7 @@ import util
 from message_passing import message_passing
 from model import Model
 from tasks.diagnostics.pretty.data import PrettyClevr, fig2array
+import numpy as np
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -93,8 +95,6 @@ class PrettyRRN(Model):
             tf.summary.histogram("vars/" + v.name, v)
             tf.summary.histogram("g_ratio/" + v.name, g / (v + 1e-8))
 
-        # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        # with tf.control_dependencies(update_ops):
         self.train_step = self.optimizer.apply_gradients(gvs, global_step=self.global_step)
 
         self.session.run(tf.global_variables_initializer())
@@ -141,6 +141,13 @@ class PrettyRRN(Model):
         return fig2array(fig)
 
     def _write_summaries(self, writer, summaries, img, anchors, jumps, targets, outputs, step):
+        equal = outputs[0] == targets
+        for i in range(8):
+            jumps_i = jumps == i
+            if any(jumps_i):
+                acc = np.mean(equal[jumps_i])
+                writer.add_summary(spb("acc/%d" % i, acc), step)
+
         imgs = self._render(img[0], int(anchors[0]), int(jumps[0]), int(targets[0]), outputs)
         img_summary = ipb("img", imgs[None])
         writer.add_summary(img_summary, step)
