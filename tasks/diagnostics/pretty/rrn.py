@@ -76,7 +76,10 @@ class PrettyRRN(Model):
                     x = mlp(tf.concat([x, x0], axis=1), 'post')
                     x = layers.batch_norm(x, scope='bn')
                     x, state = lstm_cell(x, state)
+
                     logits = mlp(x, "out", n_out=n_anchors_targets)
+                    logits = tf.reshape(logits, (self.batch_size, n_nodes, n_anchors_targets))
+                    logits = tf.reduce_sum(logits, axis=1)
 
                     out = tf.argmax(logits, axis=1)
                     outputs.append(out)
@@ -138,10 +141,13 @@ class PrettyRRN(Model):
         ).batch(self.batch_size).prefetch(1).make_one_shot_iterator()
 
     def _render(self, img, anchor, jump, target, outputs):
+        remap = {'blue': 'b', 'green': 'g', 'red': 'r', 'cyan': 'c', 'magenta': 'm', 'yellow': 'y', 'black': 'k', 'gray': 'a'}
         fig = plt.figure(figsize=(2.56, 2.56), frameon=False)
         plt.imshow(img)
-        out_str = str([self.data.i2s[output[0]] for output in outputs])
-        plt.title("%s %d %s %s" % (self.data.i2s[anchor], jump, self.data.i2s[target], out_str))
+        outs = [self.data.i2s[output[0]] for output in outputs]
+        out_str = "".join([remap[o] if o in remap else o for o in outs])
+        title = "%s %d %s\n%s" % (self.data.i2s[anchor], jump, self.data.i2s[target], out_str)
+        plt.title(title)
         plt.xticks([])
         plt.yticks([])
         plt.tight_layout()
@@ -155,7 +161,7 @@ class PrettyRRN(Model):
                 jumps_i = jumps == i
                 if any(jumps_i):
                     acc = np.mean(equal[jumps_i])
-                    writer.add_summary(spb("acc/%d" % i, acc), step)
+                    writer.add_summary(spb("%d/acc/%d" % (t, i), acc), step)
 
         imgs = self._render(img[0], int(anchors[0]), int(jumps[0]), int(targets[0]), outputs)
         img_summary = ipb("img", imgs[None])
