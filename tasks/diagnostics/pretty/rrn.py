@@ -161,7 +161,7 @@ class PrettyRRN(Model):
                 jumps_i = jumps == i
                 if any(jumps_i):
                     acc = np.mean(equal[jumps_i])
-                    writer.add_summary(spb("%d/acc/%d" % (t, i), acc), step)
+                    writer.add_summary(spb("acc/%d/%d" % (t, i), acc), step)
 
         imgs = self._render(img[0], int(anchors[0]), int(jumps[0]), int(targets[0]), outputs)
         img_summary = ipb("img", imgs[None])
