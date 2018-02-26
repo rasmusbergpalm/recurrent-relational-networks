@@ -47,7 +47,7 @@ class PrettyRRN(Model):
                     x = layers.fully_connected(x, n_hid)
                 return layers.fully_connected(x, n_out, activation_fn=None)
 
-        def forward(img, anchors, n_jumps, targets, positions, colors):
+        def forward(img, anchors, n_jumps, targets, positions, colors, markers):
             """
             :param img: (bs, 128, 128, 3)
             :param anchors: (bs,)
@@ -70,7 +70,8 @@ class PrettyRRN(Model):
 
             positions = tf.reshape(positions, (bs * n_nodes, 2))
             colors = tf.reshape(tf.one_hot(colors, 8), (bs * n_nodes, 8))
-            x = tf.concat([positions, colors], axis=1)
+            markers = tf.reshape(tf.one_hot(markers, 8), (bs * n_nodes, 8))
+            x = tf.concat([positions, colors, markers], axis=1)
             x = mlp(x, "encoder")
 
             question = tf.concat([tf.one_hot(anchors, n_anchors_targets), tf.one_hot(n_jumps, self.n_objects)], axis=1)  # (bs, 24)
@@ -104,8 +105,8 @@ class PrettyRRN(Model):
 
             return losses, outputs
 
-        self.org_img, positions, colors, self.anchors, self.n_jumps, self.targets = iterator.get_next()
-        losses, outputs = util.batch_parallel(forward, self.devices, img=self.org_img, anchors=self.anchors, n_jumps=self.n_jumps, targets=self.targets, positions=positions, colors=colors)
+        self.org_img, positions, colors, markers, self.anchors, self.n_jumps, self.targets = iterator.get_next()
+        losses, outputs = util.batch_parallel(forward, self.devices, img=self.org_img, anchors=self.anchors, n_jumps=self.n_jumps, targets=self.targets, positions=positions, colors=colors, markers=markers)
         losses = tf.reduce_mean(losses)
         self.outputs = tf.concat(outputs, axis=1)  # (splits, steps, bs)
 

@@ -56,21 +56,22 @@ class PrettyClevr:
                 objects = json.load(fp)
                 positions = np.array([o['p'] for o in objects])
                 colors = [self.s2i[o['c']] for o in objects]
-                self.objects[obj_fname] = (positions, colors)
+                markers = [self.s2i[o['m']] for o in objects]
+                self.objects[obj_fname] = (positions, colors, markers)
 
     def output_types(self):
-        return tf.uint8, tf.float32, tf.int32, tf.int32, tf.int32, tf.int32
+        return tf.uint8, tf.float32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32
 
     def output_shapes(self):
-        return (128, 128, 3), (8, 2), (8,), (), (), ()
+        return (128, 128, 3), (8, 2), (8,), (8,), (), (), ()
 
     def sample_generator(self):
         while True:
             for img_fname, json_name, anchor, n_jumps, target in random.sample(self.questions, len(self.questions)):
                 img = self.images[self.data_dir + '/images/' + img_fname]
-                positions, colors = self.objects[self.data_dir + '/states/' + json_name]
+                positions, colors, markers = self.objects[self.data_dir + '/states/' + json_name]
 
-                yield img, positions, colors, self.s2i[anchor], int(n_jumps), self.s2i[target]
+                yield img, positions, colors, markers, self.s2i[anchor], int(n_jumps), self.s2i[target]
 
 
 class PrettyClevrGenerator:
