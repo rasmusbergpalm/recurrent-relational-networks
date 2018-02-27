@@ -35,7 +35,7 @@ class PrettyRRN(Model):
         print("Building graph...")
         self.session = tf.Session(config=tf.ConfigProto(allow_soft_placement=False))
         self.global_step = tf.Variable(initial_value=0, trainable=False)
-        self.optimizer = tf.train.AdamOptimizer(1e-4)
+        self.optimizer = tf.train.AdamOptimizer(1e-3)
 
         iterator = self._iterator(self.data)
         n_nodes = 8
