@@ -115,6 +115,7 @@ class BaBiRecurrentRelationalNet(Model):
                             with tf.variable_scope('graph-fn'):
                                 x = layers.fully_connected(x, self.n_hidden, weights_regularizer=regularizer)
                                 x = layers.fully_connected(x, self.n_hidden, weights_regularizer=regularizer)
+                                x = layers.dropout(x, is_training=self.is_training_ph)
                                 return layers.fully_connected(x, self.vocab.size(), activation_fn=None, weights_regularizer=regularizer)
 
                         x = tf.concat([f_encoding, tf.gather(q_encoding, fact_segments_ph)], 1)
