@@ -19,13 +19,13 @@ import matplotlib.pyplot as plt
 
 
 class PrettyRRN(Model):
-    batch_size = 512
+    batch_size = 4
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     n_objects = 8
     data = PrettyClevr()
     n_steps = 8
-    n_hidden = 512
+    n_hidden = 128
     devices = util.get_devices()
 
     def __init__(self):
@@ -72,13 +72,15 @@ class PrettyRRN(Model):
             colors = tf.reshape(tf.one_hot(colors, 8), (bs * n_nodes, 8))
             markers = tf.reshape(tf.one_hot(markers, 8), (bs * n_nodes, 8))
             x = tf.concat([positions, colors, markers], axis=1)
-            x = mlp(x, "encoder")
+            # x = mlp(x, "encoder")
 
             question = tf.concat([tf.one_hot(anchors, n_anchors_targets), tf.one_hot(n_jumps, self.n_objects)], axis=1)  # (bs, 24)
-            question = mlp(question, "q")
+            question = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes, 1]), [bs * n_nodes, 24])
+            # question = mlp(question, "q")
             n_edges = tf.shape(edges)[0]
+            edge_features = tf.zeros((n_edges, 1))
 
-            edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes ** 2, 1]), [n_edges, self.n_hidden])
+            x = mlp(tf.concat([x, question], axis=1), "pre")
 
             with tf.variable_scope('steps'):
                 outputs = []
