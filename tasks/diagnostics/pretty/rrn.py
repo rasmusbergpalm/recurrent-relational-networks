@@ -120,6 +120,7 @@ class PrettyRRN(Model):
             tf.summary.histogram("vars/" + v.name, v)
             tf.summary.histogram("g_ratio/" + v.name, g / (v + 1e-8))
 
+        gvs = [(tf.clip_by_value(g, -1., 1.), v) for g, v in gvs]
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
             self.train_step = self.optimizer.apply_gradients(gvs, global_step=self.global_step)

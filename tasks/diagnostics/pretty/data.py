@@ -17,6 +17,7 @@ from PIL import Image
 import os
 import json
 import time
+from scipy.spatial.distance import cdist, squareform
 
 
 def fig2array(fig):
@@ -147,8 +148,30 @@ class PrettyClevrGenerator:
 if __name__ == '__main__':
     d = PrettyClevr()
     gen = d.sample_generator()
-    start = time.perf_counter()
-    for i in range(100000):
-        next(gen)
 
-    print((i + 1) / (time.perf_counter() - start), "Hz")
+    dists = []
+    jumps = []
+    for i in range(20000):
+        img, positions, colors, markers, anchor, n_jumps, target = next(gen)
+        if n_jumps == 0:
+            continue
+        jumps.append(n_jumps)
+
+        if anchor < 8:
+            an = colors.index(anchor)
+        else:
+            an = markers.index(anchor)
+
+        if target < 8:
+            tn = colors.index(target)
+        else:
+            tn = markers.index(target)
+
+        dists.append(cdist(positions[tn][None], positions[an][None]).mean())
+
+    import matplotlib
+
+    matplotlib.use('Agg')
+    plt.hexbin(jumps, dists, gridsize=32)
+    plt.savefig('atd.png')
+    plt.close()
