@@ -2,7 +2,6 @@ import glob
 import io
 import tarfile
 import urllib.request
-import zipfile
 
 import matplotlib
 
@@ -16,8 +15,8 @@ import numpy as np
 from PIL import Image
 import os
 import json
-import time
-from scipy.spatial.distance import cdist, squareform
+from scipy.spatial.distance import cdist
+from os.path import basename
 
 
 def fig2array(fig):
@@ -42,23 +41,31 @@ class PrettyClevr:
             with tarfile.open(self.tgz_fname, "r:gz") as f:
                 f.extractall(self.base_dir)
 
-        with open(self.data_dir + '/questions.csv') as qf:
-            print("Loading data...")
-            with open(self.data_dir + '/dict.json') as fp:
-                self.s2i = json.load(fp)
-                self.i2s = {i: s for s, i in self.s2i.items()}
+        with open(self.data_dir + '/train/dict.json') as fp:
+            self.s2i = json.load(fp)
+            self.i2s = {i: s for s, i in self.s2i.items()}
 
-            self.questions = [l.strip().split(", ") for l in qf.readlines()]
+        self.train = self.load_data(self.data_dir + '/train', self.s2i)
+        self.dev = self.load_data(self.data_dir + '/dev', self.s2i)
 
-        self.images = {img_fname: np.array(Image.open(img_fname).convert("RGB")) for img_fname in glob.glob(self.data_dir + '/images/*.png')}
-        self.objects = {}
-        for obj_fname in glob.glob(self.data_dir + '/states/*.json'):
+    @staticmethod
+    def load_data(data_dir, s2i):
+        print("Loading %s..." % data_dir)
+
+        with open(data_dir + '/questions.csv') as qf:
+            questions = [l.strip().split(", ") for l in qf.readlines()]
+
+        images = {basename(img_fname): np.array(Image.open(img_fname).convert("RGB")) for img_fname in glob.glob(data_dir + '/images/*.png')}
+        all_objects = {}
+        for obj_fname in glob.glob(data_dir + '/states/*.json'):
             with open(obj_fname) as fp:
                 objects = json.load(fp)
                 positions = np.array([o['p'] for o in objects])
-                colors = [self.s2i[o['c']] for o in objects]
-                markers = [self.s2i[o['m']] for o in objects]
-                self.objects[obj_fname] = (positions, colors, markers)
+                colors = [s2i[o['c']] for o in objects]
+                markers = [s2i[o['m']] for o in objects]
+                all_objects[basename(obj_fname)] = (positions, colors, markers)
+
+        return questions, images, all_objects
 
     def output_types(self):
         return tf.uint8, tf.float32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32
@@ -66,11 +73,18 @@ class PrettyClevr:
     def output_shapes(self):
         return (128, 128, 3), (8, 2), (8,), (8,), (), (), ()
 
-    def sample_generator(self):
+    def train_generator(self):
+        return self.sample_generator(self.train)
+
+    def dev_generator(self):
+        return self.sample_generator(self.dev)
+
+    def sample_generator(self, set):
+        questions, images, objects = set
         while True:
-            for img_fname, json_name, anchor, n_jumps, target in random.sample(self.questions, len(self.questions)):
-                img = self.images[self.data_dir + '/images/' + img_fname]
-                positions, colors, markers = self.objects[self.data_dir + '/states/' + json_name]
+            for img_fname, json_name, anchor, n_jumps, target in random.sample(questions, len(questions)):
+                img = images[img_fname]
+                positions, colors, markers = objects[json_name]
 
                 yield img, positions, colors, markers, self.s2i[anchor], int(n_jumps), self.s2i[target]
 
@@ -146,8 +160,12 @@ class PrettyClevrGenerator:
 
 
 if __name__ == '__main__':
-    d = PrettyClevrGenerator(8)
-    d.generate(1000)
+    d = PrettyClevr()
+    train_gen = d.train_generator()
+    dev_gen = d.dev_generator()
+    for i in range(4):
+        next(train_gen)
+        next(dev_gen)
 
 if __name__ == '__main2__':
     d = PrettyClevr()

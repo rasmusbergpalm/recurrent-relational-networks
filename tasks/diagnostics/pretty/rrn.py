@@ -1,18 +1,17 @@
 import os
 
 import matplotlib
+import numpy as np
 import tensorflow as tf
 from tensorboard.plugins.image.summary import pb as ipb
 from tensorboard.plugins.scalar.summary import pb as spb
 from tensorflow.contrib import layers
 from tensorflow.python.data import Dataset
-from tensorflow.contrib.rnn import LSTMCell
 
 import util
 from message_passing import message_passing
 from model import Model
 from tasks.diagnostics.pretty.data import PrettyClevr, fig2array
-import numpy as np
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -36,8 +35,10 @@ class PrettyRRN(Model):
         self.session = tf.Session(config=tf.ConfigProto(allow_soft_placement=False))
         self.global_step = tf.Variable(initial_value=0, trainable=False)
         self.optimizer = tf.train.AdamOptimizer(1e-4)
+        self.is_training_ph = tf.placeholder(bool, name='is_training')
 
-        iterator = self._iterator(self.data)
+        train_iterator = self._iterator(self.data.train_generator, self.data.output_types(), self.data.output_shapes())
+        dev_iterator = self._iterator(self.data.dev_generator, self.data.output_types(), self.data.output_shapes())
         n_nodes = 8
         n_anchors_targets = len(self.data.i2s)
 
@@ -89,7 +90,7 @@ class PrettyRRN(Model):
                 for step in range(self.n_steps):
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                     # x = mlp(tf.concat([x, x0], axis=1), 'post')
-                    # x = layers.batch_norm(x, scope='bn')
+                    # x = layers.batch_norm(x, scope='bn', is_training=self.is_training_ph)
                     # x, state = lstm_cell(x, state)
 
                     logits = x
@@ -106,7 +107,12 @@ class PrettyRRN(Model):
 
             return losses, outputs
 
-        self.org_img, positions, colors, markers, self.anchors, self.n_jumps, self.targets = iterator.get_next()
+        self.org_img, positions, colors, markers, self.anchors, self.n_jumps, self.targets = tf.cond(
+            self.is_training_ph,
+            true_fn=lambda: train_iterator.get_next(),
+            false_fn=lambda: dev_iterator.get_next(),
+        )
+
         losses, outputs = util.batch_parallel(forward, self.devices, img=self.org_img, anchors=self.anchors, n_jumps=self.n_jumps, targets=self.targets, positions=positions, colors=colors, markers=markers)
         losses = tf.reduce_mean(losses)
         self.outputs = tf.concat(outputs, axis=1)  # (splits, steps, bs)
@@ -135,11 +141,11 @@ class PrettyRRN(Model):
         self.load('/home/rapal/runs/e6d1b1d/best')
 
     def train_batch(self):
-        _, loss = self.session.run([self.train_step, self.loss])
+        _, loss = self.session.run([self.train_step, self.loss], {self.is_training_ph: True})
         return loss
 
     def val_batch(self):
-        loss, summaries, step, img, anchors, jumps, targets, outputs = self.session.run([self.loss, self.summaries, self.global_step, self.org_img, self.anchors, self.n_jumps, self.targets, self.outputs])
+        loss, summaries, step, img, anchors, jumps, targets, outputs = self.session.run([self.loss, self.summaries, self.global_step, self.org_img, self.anchors, self.n_jumps, self.targets, self.outputs], {self.is_training_ph: False})
         self._write_summaries(self.test_writer, summaries, img, anchors, jumps, targets, outputs, step)
         return loss
 
@@ -150,11 +156,11 @@ class PrettyRRN(Model):
         print("Loading %s..." % name)
         self.saver.restore(self.session, name)
 
-    def _iterator(self, data):
+    def _iterator(self, generator, output_types, output_shapes):
         return Dataset.from_generator(
-            data.sample_generator,
-            data.output_types(),
-            data.output_shapes()
+            generator,
+            output_types,
+            output_shapes
         ).batch(self.batch_size).prefetch(1).make_one_shot_iterator()
 
     def _render(self, img, anchor, jump, target, outputs):
