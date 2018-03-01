@@ -149,13 +149,11 @@ if __name__ == '__main__':
     d = PrettyClevr()
     gen = d.sample_generator()
 
-    dists = []
-    jumps = []
+    dists = {i: [] for i in range(8)}
     for i in range(20000):
         img, positions, colors, markers, anchor, n_jumps, target = next(gen)
         if n_jumps == 0:
             continue
-        jumps.append(n_jumps)
 
         if anchor < 8:
             an = colors.index(anchor)
@@ -167,11 +165,13 @@ if __name__ == '__main__':
         else:
             tn = markers.index(target)
 
-        dists.append(cdist(positions[tn][None], positions[an][None]).mean())
+        dists[n_jumps].append(cdist(positions[tn][None], positions).mean())
 
     import matplotlib
 
     matplotlib.use('Agg')
-    plt.hexbin(jumps, dists, gridsize=32)
-    plt.savefig('atd.png')
+    for i, d in dists.items():
+        plt.hist(d, bins=np.linspace(0, np.sqrt(2), 32), label="%d" % i, alpha=0.5)
+    plt.legend()
+    plt.savefig('md-hist.png')
     plt.close()
