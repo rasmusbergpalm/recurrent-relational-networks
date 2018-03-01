@@ -138,7 +138,7 @@ class PrettyRRN(Model):
         self.train_writer = tf.summary.FileWriter(tensorboard_dir + '/pretty/%s/train/%s' % (self.revision, self.name), self.session.graph)
         self.test_writer = tf.summary.FileWriter(tensorboard_dir + '/pretty/%s/test/%s' % (self.revision, self.name), self.session.graph)
         self.summaries = tf.summary.merge_all()
-        self.load('/home/rapal/runs/e6d1b1d/best')
+        # self.load('/home/rapal/runs/e6d1b1d/best')
 
     def train_batch(self):
         _, loss = self.session.run([self.train_step, self.loss], {self.is_training_ph: True})
