@@ -131,7 +131,7 @@ class PrettyClevrGenerator:
 
     def generate(self, n):
         gen = self.sample_generator()
-        with open('dict.json') as fp:
+        with open('dict.json', 'w') as fp:
             json.dump(self.s2i, fp)
 
         with open('questions.csv', 'w') as qf:
@@ -146,6 +146,10 @@ class PrettyClevrGenerator:
 
 
 if __name__ == '__main__':
+    d = PrettyClevrGenerator(8)
+    d.generate(1000)
+
+if __name__ == '__main2__':
     d = PrettyClevr()
     gen = d.sample_generator()
 
