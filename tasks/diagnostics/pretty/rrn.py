@@ -24,8 +24,8 @@ class PrettyRRN(Model):
     message = os.environ.get('MESSAGE')
     n_objects = 8
     data = PrettyClevr()
-    n_steps = 1
-    n_hidden = 512
+    n_steps = 8
+    n_hidden = 128
     devices = util.get_devices()
 
     def __init__(self):
@@ -72,25 +72,27 @@ class PrettyRRN(Model):
             colors = tf.reshape(tf.one_hot(colors, 8), (bs * n_nodes, 8))
             markers = tf.reshape(tf.one_hot(markers, 8), (bs * n_nodes, 8))
             x = tf.concat([positions, colors, markers], axis=1)
-            x = mlp(x, "encoder")
+            # x = mlp(x, "encoder")
 
             question = tf.concat([tf.one_hot(anchors, n_anchors_targets), tf.one_hot(n_jumps, self.n_objects)], axis=1)  # (bs, 24)
-            question = mlp(question, "q")
+            question = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes, 1]), [bs * n_nodes, 24])
+            # question = mlp(question, "q")
             n_edges = tf.shape(edges)[0]
+            edge_features = tf.zeros((n_edges, 1))
 
-            edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes ** 2, 1]), [n_edges, self.n_hidden])
+            x = mlp(tf.concat([x, question], axis=1), "pre")
 
             with tf.variable_scope('steps'):
                 outputs = []
                 losses = []
-                # x0 = x
-                # lstm_cell = LSTMCell(self.n_hidden)
-                # state = lstm_cell.zero_state(n_nodes * bs, tf.float32)
+                x0 = x
+                lstm_cell = LSTMCell(self.n_hidden)
+                state = lstm_cell.zero_state(n_nodes * bs, tf.float32)
                 for step in range(self.n_steps):
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
-                    # x = mlp(tf.concat([x, x0], axis=1), 'post')
-                    # x = layers.batch_norm(x, scope='bn')
-                    # x, state = lstm_cell(x, state)
+                    x = mlp(tf.concat([x, x0], axis=1), 'post')
+                    x = layers.batch_norm(x, scope='bn')
+                    x, state = lstm_cell(x, state)
 
                     logits = x
                     logits = tf.reshape(logits, (bs, n_nodes, self.n_hidden))
@@ -120,6 +122,7 @@ class PrettyRRN(Model):
             tf.summary.histogram("vars/" + v.name, v)
             tf.summary.histogram("g_ratio/" + v.name, g / (v + 1e-8))
 
+        gvs = [(tf.clip_by_value(g, -1., 1.), v) for g, v in gvs]
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
             self.train_step = self.optimizer.apply_gradients(gvs, global_step=self.global_step)
@@ -132,8 +135,6 @@ class PrettyRRN(Model):
         self.train_writer = tf.summary.FileWriter(tensorboard_dir + '/pretty/%s/train/%s' % (self.revision, self.name), self.session.graph)
         self.test_writer = tf.summary.FileWriter(tensorboard_dir + '/pretty/%s/test/%s' % (self.revision, self.name), self.session.graph)
         self.summaries = tf.summary.merge_all()
-
-        self.load('/home/rapal/runs/e6d1b1d/best')
 
     def train_batch(self):
         _, loss = self.session.run([self.train_step, self.loss])
