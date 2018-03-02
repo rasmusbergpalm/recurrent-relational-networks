@@ -1,6 +1,7 @@
 import os
 
 import matplotlib
+import networkx as nx
 import numpy as np
 import tensorflow as tf
 from tensorboard.plugins.image.summary import pb as ipb
@@ -19,7 +20,7 @@ import matplotlib.pyplot as plt
 
 
 class PrettyRRN(Model):
-    batch_size = 512
+    batch_size = 128
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     n_objects = 8
@@ -38,6 +39,8 @@ class PrettyRRN(Model):
         self.optimizer = tf.train.AdamOptimizer(1e-4)
         self.is_training_ph = tf.placeholder(bool, name='is_training')
 
+        regularizer = layers.l2_regularizer(1e-4)
+
         train_iterator = self._iterator(self.data.train_generator, self.data.output_types(), self.data.output_shapes())
         dev_iterator = self._iterator(self.data.dev_generator, self.data.output_types(), self.data.output_shapes())
         n_nodes = 8
@@ -46,8 +49,8 @@ class PrettyRRN(Model):
         def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden):
             with tf.variable_scope(scope):
                 for i in range(3):
-                    x = layers.fully_connected(x, n_hid)
-                return layers.fully_connected(x, n_out, activation_fn=None)
+                    x = layers.fully_connected(x, n_hid, weights_regularizer=regularizer)
+                return layers.fully_connected(x, n_out, weights_regularizer=regularizer, activation_fn=None)
 
         def forward(img, anchors, n_jumps, targets, positions, colors, markers):
             """
@@ -60,7 +63,9 @@ class PrettyRRN(Model):
             """
             bs = self.batch_size // len(self.devices)
             edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes)]
-            edges = tf.constant([(i + (b * n_nodes), j + (b * n_nodes)) for b in range(bs) for i, j in edges], tf.int32)
+            edges = [(i + (b * n_nodes), j + (b * n_nodes)) for b in range(bs) for i, j in edges]
+            assert len(list(nx.connected_component_subgraphs(nx.Graph(edges)))) == bs
+            edges = tf.constant(edges, tf.int32)
 
             """
             x = ((1. - tf.to_float(img) / 255.) - 0.5)  # (bs, h, w, 3)
@@ -91,7 +96,7 @@ class PrettyRRN(Model):
                 for step in range(self.n_steps):
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                     x = mlp(tf.concat([x, x0], axis=1), 'post')
-                    x = layers.batch_norm(x, scope='bn', is_training=self.is_training_ph)
+                    # x = layers.batch_norm(x, scope='bn', is_training=self.is_training_ph)
                     x, state = lstm_cell(x, state)
 
                     logits = x
@@ -114,11 +119,14 @@ class PrettyRRN(Model):
             false_fn=lambda: dev_iterator.get_next(),
         )
 
-        losses, outputs = util.batch_parallel(forward, self.devices, img=self.org_img, anchors=self.anchors, n_jumps=self.n_jumps, targets=self.targets, positions=positions, colors=colors, markers=markers)
-        losses = tf.reduce_mean(losses)
+        log_losses, outputs = util.batch_parallel(forward, self.devices, img=self.org_img, anchors=self.anchors, n_jumps=self.n_jumps, targets=self.targets, positions=positions, colors=colors, markers=markers)
+        log_losses = tf.reduce_mean(log_losses)
         self.outputs = tf.concat(outputs, axis=1)  # (splits, steps, bs)
 
-        self.loss = tf.reduce_mean(losses)
+        reg_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
+        tf.summary.scalar('reg_loss', reg_loss)
+
+        self.loss = tf.reduce_mean(log_losses) + reg_loss
         tf.summary.scalar('loss', self.loss)
 
         gvs = self.optimizer.compute_gradients(self.loss, colocate_gradients_with_ops=True)
@@ -139,7 +147,6 @@ class PrettyRRN(Model):
         self.train_writer = tf.summary.FileWriter(tensorboard_dir + '/pretty/%s/train/%s' % (self.revision, self.name), self.session.graph)
         self.test_writer = tf.summary.FileWriter(tensorboard_dir + '/pretty/%s/test/%s' % (self.revision, self.name), self.session.graph)
         self.summaries = tf.summary.merge_all()
-        # self.load('/home/rapal/runs/e6d1b1d/best')
 
     def train_batch(self):
         _, loss = self.session.run([self.train_step, self.loss], {self.is_training_ph: True})
