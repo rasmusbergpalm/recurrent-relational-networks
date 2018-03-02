@@ -149,7 +149,12 @@ class PrettyRRN(Model):
         self.summaries = tf.summary.merge_all()
 
     def train_batch(self):
-        _, loss = self.session.run([self.train_step, self.loss], {self.is_training_ph: True})
+        step = self.session.run(self.global_step)
+        if step % 1000 == 0:
+            _, loss, summaries = self.session.run([self.train_step, self.loss, self.summaries], {self.is_training_ph: True})
+            self.train_writer.add_summary(summaries, step)
+        else:
+            _, loss = self.session.run([self.train_step, self.loss], {self.is_training_ph: True})
         return loss
 
     def val_batch(self):
