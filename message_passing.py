@@ -22,9 +22,9 @@ def message_passing(nodes, edges, edge_features, message_fn, edge_keep_prob=1.0)
     messages = message_fn(reshaped)  # n_edges, n_output
     messages = tf.nn.dropout(messages, edge_keep_prob, noise_shape=(n_edges, 1))
 
-    n_output = messages.get_shape()[1].value
-
-    out_shape = (n_nodes, n_output)
-    updates = tf.scatter_nd(tf.reshape(edges[:, 1], (-1, 1)), messages, out_shape)
+    # n_output = messages.get_shape()[1].value
+    # out_shape = (n_nodes, n_output)
+    updates = tf.unsorted_segment_sum(messages, edges[:, 1], n_nodes)
+    # updates = tf.scatter_nd(tf.reshape(edges[:, 1], (-1, 1)), messages, out_shape)
 
     return updates
