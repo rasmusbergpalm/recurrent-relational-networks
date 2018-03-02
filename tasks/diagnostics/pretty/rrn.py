@@ -77,11 +77,8 @@ class PrettyRRN(Model):
 
             positions = tf.reshape(positions, (bs * n_nodes, 2))
             colors = tf.reshape(tf.one_hot(colors, 8), (bs * n_nodes, 8))
-            with tf.device('/device:CPU:0'):
-                tf.summary.scalar("color_all", tf.to_float(tf.reduce_all(tf.equal(tf.reduce_sum(colors, 1), 1.0))))
             markers = tf.reshape(tf.one_hot(markers - 8, 8), (bs * n_nodes, 8))
-            with tf.device('/device:CPU:0'):
-                tf.summary.scalar("marker_all", tf.to_float(tf.reduce_all(tf.equal(tf.reduce_sum(markers, 1), 1.0))))
+
             x = tf.concat([positions, colors, markers], axis=1)
             x = layers.fully_connected(x, self.n_hidden, activation_fn=None, scope="encoder")
 
