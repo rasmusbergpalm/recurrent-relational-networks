@@ -25,7 +25,7 @@ class PrettyRRN(Model):
     message = os.environ.get('MESSAGE')
     n_objects = 8
     data = PrettyClevr()
-    n_steps = 8
+    n_steps = 1
     n_hidden = 128
     devices = util.get_devices()
 
@@ -80,13 +80,13 @@ class PrettyRRN(Model):
             markers = tf.reshape(tf.one_hot(markers - 8, 8), (bs * n_nodes, 8))
 
             x = tf.concat([positions, colors, markers], axis=1)
-            x = layers.fully_connected(x, self.n_hidden, activation_fn=None, scope="encoder")
+            x = mlp(x, "encoder")
 
             question = tf.concat([tf.one_hot(anchors, n_anchors_targets), tf.one_hot(n_jumps, self.n_objects)], axis=1)  # (bs, 24)
-            # question = mlp(question, "q")
+            question = mlp(question, "q")
             n_edges = tf.shape(edges)[0]
 
-            edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes ** 2, 1]), [n_edges, 24])
+            edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes ** 2, 1]), [n_edges, self.n_hidden])
 
             with tf.variable_scope('steps'):
                 outputs = []
@@ -96,9 +96,9 @@ class PrettyRRN(Model):
                 state = lstm_cell.zero_state(n_nodes * bs, tf.float32)
                 for step in range(self.n_steps):
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
-                    x = mlp(tf.concat([x, x0], axis=1), 'post')
-                    x = layers.batch_norm(x, scope='bn', is_training=self.is_training_ph)
-                    x, state = lstm_cell(x, state)
+                    # x = mlp(tf.concat([x, x0], axis=1), 'post')
+                    # x = layers.batch_norm(x, scope='bn', is_training=self.is_training_ph)
+                    # x, state = lstm_cell(x, state)
 
                     logits = x
                     logits = tf.reshape(logits, (bs, n_nodes, self.n_hidden))
