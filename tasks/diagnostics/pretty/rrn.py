@@ -75,20 +75,19 @@ class PrettyRRN(Model):
             x = tf.reshape(x, (bs * n_nodes, self.n_hidden))
             """
 
-            positions = tf.reshape(positions, (bs, n_nodes * 2))
-            colors = tf.reshape(tf.one_hot(colors, 8), (bs, n_nodes * 8))
-            markers = tf.reshape(tf.one_hot(markers, 8), (bs, n_nodes * 8))
-
-            # x = layers.fully_connected(x, self.n_hidden, activation_fn=None, scope="encoder")
+            positions = tf.reshape(positions, (bs * n_nodes, 2))
+            colors = tf.reshape(tf.one_hot(colors, 8), (bs * n_nodes, 8))
+            tf.summary.scalar("color_all", tf.to_float(tf.reduce_all(tf.equal(tf.reduce_sum(colors, 1), 1.0))))
+            markers = tf.reshape(tf.one_hot(markers, 8), (bs * n_nodes, 8))
+            tf.summary.scalar("marker_all", tf.to_float(tf.reduce_all(tf.equal(tf.reduce_sum(markers, 1), 1.0))))
+            x = tf.concat([positions, colors, markers], axis=1)
+            x = layers.fully_connected(x, self.n_hidden, activation_fn=None, scope="encoder")
 
             question = tf.concat([tf.one_hot(anchors, n_anchors_targets), tf.one_hot(n_jumps, self.n_objects)], axis=1)  # (bs, 24)
-
-            x = tf.concat([positions, colors, markers, question], axis=1)
-            logits = mlp(x, "MLP", n_out=n_anchors_targets)
             # question = mlp(question, "q")
-            # n_edges = tf.shape(edges)[0]
+            n_edges = tf.shape(edges)[0]
 
-            # edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes ** 2, 1]), [n_edges, 24])
+            edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes ** 2, 1]), [n_edges, 24])
 
             with tf.variable_scope('steps'):
                 outputs = []
@@ -97,15 +96,15 @@ class PrettyRRN(Model):
                 lstm_cell = LSTMCell(self.n_hidden)
                 state = lstm_cell.zero_state(n_nodes * bs, tf.float32)
                 for step in range(self.n_steps):
-                    # x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
+                    x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                     # x = mlp(tf.concat([x, x0], axis=1), 'post')
                     # x = layers.batch_norm(x, scope='bn', is_training=self.is_training_ph)
                     # x, state = lstm_cell(x, state)
 
-                    # logits = x
-                    # logits = tf.reshape(logits, (bs, n_nodes, self.n_hidden))
-                    # logits = tf.reduce_sum(logits, axis=1)
-                    # logits = mlp(logits, "out", n_out=n_anchors_targets)
+                    logits = x
+                    logits = tf.reshape(logits, (bs, n_nodes, self.n_hidden))
+                    logits = tf.reduce_sum(logits, axis=1)
+                    logits = mlp(logits, "out", n_out=n_anchors_targets)
 
                     out = tf.argmax(logits, axis=1)
                     outputs.append(out)
