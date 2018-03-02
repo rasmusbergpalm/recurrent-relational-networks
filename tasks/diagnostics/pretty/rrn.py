@@ -82,7 +82,7 @@ class PrettyRRN(Model):
             x = layers.fully_connected(x, self.n_hidden, activation_fn=None, scope="encoder")
 
             question = tf.concat([tf.one_hot(anchors, n_anchors_targets), tf.one_hot(n_jumps, self.n_objects)], axis=1)  # (bs, 24)
-            question = mlp(question, "q")
+            # question = mlp(question, "q")
             n_edges = tf.shape(edges)[0]
 
             edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes ** 2, 1]), [n_edges, self.n_hidden])
