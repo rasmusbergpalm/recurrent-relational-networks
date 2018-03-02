@@ -85,7 +85,7 @@ class PrettyRRN(Model):
             # question = mlp(question, "q")
             n_edges = tf.shape(edges)[0]
 
-            edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes ** 2, 1]), [n_edges, self.n_hidden])
+            edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes ** 2, 1]), [n_edges, 24])
 
             with tf.variable_scope('steps'):
                 outputs = []
