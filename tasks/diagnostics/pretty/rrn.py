@@ -79,7 +79,7 @@ class PrettyRRN(Model):
             colors = tf.reshape(tf.one_hot(colors, 8), (bs * n_nodes, 8))
             markers = tf.reshape(tf.one_hot(markers, 8), (bs * n_nodes, 8))
             x = tf.concat([positions, colors, markers], axis=1)
-            x = mlp(x, "encoder")
+            # x = mlp(x, "encoder")
 
             question = tf.concat([tf.one_hot(anchors, n_anchors_targets), tf.one_hot(n_jumps, self.n_objects)], axis=1)  # (bs, 24)
             question = mlp(question, "q")
