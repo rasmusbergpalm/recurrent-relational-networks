@@ -19,6 +19,7 @@ from scipy.spatial.distance import cdist
 from os.path import basename
 
 
+
 def fig2array(fig):
     with io.BytesIO() as buf:  # this is pretty stupid but it was the only way I could get it rendered with anti-aliasing
         fig.savefig(buf, format='png')
