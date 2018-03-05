@@ -83,10 +83,11 @@ class PrettyClevr:
         questions, images, objects = set
         while True:
             for img_fname, json_name, anchor, n_jumps, target in random.sample(questions, len(questions)):
-                img = images[img_fname]
-                positions, colors, markers = objects[json_name]
+                if n_jumps == "1":
+                    img = images[img_fname]
+                    positions, colors, markers = objects[json_name]
 
-                yield img, positions, colors, markers, self.s2i[anchor], int(n_jumps), self.s2i[target]
+                    yield img, positions, colors, markers, self.s2i[anchor], int(n_jumps), self.s2i[target]
 
 
 class PrettyClevrGenerator:
