@@ -25,7 +25,7 @@ class PrettyRRN(Model):
     message = os.environ.get('MESSAGE')
     n_objects = 8
     data = PrettyClevr()
-    n_steps = 8
+    n_steps = 1
     n_hidden = 128
     devices = util.get_devices()
 
@@ -39,17 +39,18 @@ class PrettyRRN(Model):
         self.optimizer = tf.train.AdamOptimizer(1e-4)
         self.is_training_ph = tf.placeholder(bool, name='is_training')
 
-        regularizer = layers.l2_regularizer(1e-4)
+        regularizer = layers.l2_regularizer(2e-4)
 
         train_iterator = self._iterator(self.data.train_generator, self.data.output_types(), self.data.output_shapes())
         dev_iterator = self._iterator(self.data.dev_generator, self.data.output_types(), self.data.output_shapes())
         n_nodes = 8
         n_anchors_targets = len(self.data.i2s)
 
-        def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden):
+        def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden, keep_prob=1.0):
             with tf.variable_scope(scope):
                 for i in range(3):
                     x = layers.fully_connected(x, n_hid, weights_regularizer=regularizer)
+                x = layers.dropout(x, keep_prob=keep_prob, is_training=self.is_training_ph)
                 return layers.fully_connected(x, n_out, weights_regularizer=regularizer, activation_fn=None)
 
         def forward(img, anchors, n_jumps, targets, positions, colors, markers):
@@ -96,14 +97,14 @@ class PrettyRRN(Model):
                 state = lstm_cell.zero_state(n_nodes * bs, tf.float32)
                 for step in range(self.n_steps):
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
-                    x = mlp(tf.concat([x, x0], axis=1), 'post')
-                    x = layers.batch_norm(x, scope='bn', is_training=self.is_training_ph)
-                    x, state = lstm_cell(x, state)
+                    # x = mlp(tf.concat([x, x0], axis=1), 'post')
+                    # x = layers.batch_norm(x, scope='bn', is_training=self.is_training_ph)
+                    # x, state = lstm_cell(x, state)
 
                     logits = x
                     logits = tf.reshape(logits, (bs, n_nodes, self.n_hidden))
                     logits = tf.reduce_sum(logits, axis=1)
-                    logits = mlp(logits, "out", n_out=n_anchors_targets)
+                    logits = mlp(logits, "out", n_out=n_anchors_targets, keep_prob=0.5)
 
                     out = tf.argmax(logits, axis=1)
                     outputs.append(out)
