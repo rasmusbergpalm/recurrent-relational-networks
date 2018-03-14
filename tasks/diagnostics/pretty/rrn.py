@@ -27,7 +27,7 @@ class PrettyRRN(Model):
     n_objects = 8
     data = PrettyClevr()
     n_steps = 4
-    n_hidden = 128
+    n_hidden = 32
     devices = util.get_devices()
 
     def __init__(self):
