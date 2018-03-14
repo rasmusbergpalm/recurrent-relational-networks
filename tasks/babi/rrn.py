@@ -18,7 +18,7 @@ from tasks.babi.data import bAbI
 
 
 class BaBiRecurrentRelationalNet(Model):
-    number = 8
+    number = 1
     devices = util.get_devices()
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
@@ -29,7 +29,7 @@ class BaBiRecurrentRelationalNet(Model):
     qsize = len(devices) * 100
     n_steps = 3
     edge_keep_prob = 1.0
-    n_hidden = 128
+    n_hidden = 32
 
     def __init__(self, is_testing):
         super().__init__()
