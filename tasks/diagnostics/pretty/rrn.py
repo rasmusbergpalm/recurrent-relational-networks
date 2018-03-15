@@ -20,14 +20,14 @@ import matplotlib.pyplot as plt
 
 
 class PrettyRRN(Model):
-    number = 3
+    number = 1
     batch_size = 128
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     n_objects = 8
     data = PrettyClevr()
-    n_steps = 4
-    n_hidden = 32
+    n_steps = 1
+    n_hidden = 128
     devices = util.get_devices()
 
     def __init__(self):
@@ -67,7 +67,7 @@ class PrettyRRN(Model):
             edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes)]
             edges = [(i + (b * n_nodes), j + (b * n_nodes)) for b in range(bs) for i, j in edges]
             assert len(list(nx.connected_component_subgraphs(nx.Graph(edges)))) == bs
-            edges = tf.constant(edges, tf.int32)
+            edges = tf.constant(edges, tf.int32)  # (bs*8*8, 2)
 
             """
             x = ((1. - tf.to_float(img) / 255.) - 0.5)  # (bs, h, w, 3)
@@ -77,6 +77,13 @@ class PrettyRRN(Model):
             x = tf.reshape(x, (bs * n_nodes, self.n_hidden))
             """
 
+            def dist(positions):
+                expanded_a = tf.expand_dims(positions, 2)  # (bs, 8, 1, 2)
+                expanded_b = tf.expand_dims(positions, 1)  # (bs, 1, 8, 2)
+                return tf.sqrt(tf.reduce_sum(tf.squared_difference(expanded_a, expanded_b), 3))  # (bs, 8, 8)
+
+            distances = dist(positions)
+            distances = tf.reshape(distances, (bs * 8 * 8, -1))
             positions = tf.reshape(positions, (bs * n_nodes, 2))
             colors = tf.reshape(tf.one_hot(colors, 8), (bs * n_nodes, 8))
             markers = tf.reshape(tf.one_hot(markers - 8, 8), (bs * n_nodes, 8))
@@ -84,11 +91,11 @@ class PrettyRRN(Model):
             x = tf.concat([positions, colors, markers], axis=1)
             x = layers.fully_connected(x, self.n_hidden, activation_fn=None, scope="encoder")
 
-            question = tf.concat([tf.one_hot(anchors, n_anchors_targets), tf.one_hot(n_jumps, self.n_objects)], axis=1)  # (bs, 24)
-            # question = mlp(question, "q")
             n_edges = tf.shape(edges)[0]
+            question = tf.concat([tf.one_hot(anchors, n_anchors_targets), tf.one_hot(n_jumps, self.n_objects)], axis=1)  # (bs, 24)
+            question = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes ** 2, 1]), [n_edges, 24])
 
-            edge_features = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes ** 2, 1]), [n_edges, 24])
+            edge_features = tf.reshape(tf.concat([question, distances], axis=1), [n_edges, 25])
 
             with tf.variable_scope('steps'):
                 outputs = []
@@ -99,7 +106,6 @@ class PrettyRRN(Model):
                 for step in range(self.n_steps):
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                     x = mlp(tf.concat([x, x0], axis=1), 'post')
-                    # x = layers.batch_norm(x, scope='bn', is_training=self.is_training_ph)
                     x, state = lstm_cell(x, state)
 
                     logits = x
