@@ -27,7 +27,7 @@ class PrettyRRN(Model):
     n_objects = 8
     data = PrettyClevr()
     n_steps = 1
-    n_hidden = 128
+    n_hidden = 256
     devices = util.get_devices()
 
     def __init__(self):
@@ -64,12 +64,13 @@ class PrettyRRN(Model):
             :param colors: (bs, 8)
             """
             bs = self.batch_size // len(self.devices)
+            """
             edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes)]
             edges = [(i + (b * n_nodes), j + (b * n_nodes)) for b in range(bs) for i, j in edges]
             assert len(list(nx.connected_component_subgraphs(nx.Graph(edges)))) == bs
             edges = tf.constant(edges, tf.int32)  # (bs*8*8, 2)
 
-            """
+            
             x = ((1. - tf.to_float(img) / 255.) - 0.5)  # (bs, h, w, 3)
             with tf.variable_scope('encoder'):
                 for i in range(5):
@@ -86,7 +87,7 @@ class PrettyRRN(Model):
             positions = tf.reshape(positions, (bs, n_nodes * 2))
             colors = tf.reshape(tf.one_hot(colors, 8), (bs, n_nodes * 8))
             markers = tf.reshape(tf.one_hot(markers - 8, 8), (bs, n_nodes * 8))
-            question = tf.concat([tf.one_hot(anchors, n_anchors_targets), tf.one_hot(n_jumps, self.n_objects)], axis=1)  # (bs, 24)
+            question = tf.one_hot(anchors, n_anchors_targets)
 
             x = tf.concat([positions, colors, markers, distances, question], axis=1)
             x = mlp(x, 'mlp')
