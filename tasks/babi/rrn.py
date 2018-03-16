@@ -18,7 +18,7 @@ from tasks.babi.data import bAbI
 
 
 class BaBiRecurrentRelationalNet(Model):
-    number = 4
+    number = 1
     devices = util.get_devices()
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
@@ -27,7 +27,7 @@ class BaBiRecurrentRelationalNet(Model):
     batch_size = 512
     num_facts = 20
     qsize = len(devices) * 100
-    n_steps = 3
+    n_steps = 1
     edge_keep_prob = 1.0
     n_hidden = 128
 
@@ -40,7 +40,7 @@ class BaBiRecurrentRelationalNet(Model):
 
         print("Creating graph...")
         with tf.Graph().as_default(), tf.device('/cpu:0'):
-            regularizer = layers.l2_regularizer(2e-4)
+            regularizer = layers.l2_regularizer(1e-5)
 
             self.session = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
             self.global_step = tf.Variable(initial_value=0, trainable=False)
