@@ -78,8 +78,8 @@ class PrettyRRN(Model):
             """
 
             def dist(positions):
-                expanded_a = tf.expand_dims(positions, 2)  # (bs, 8, 1, 2)
-                expanded_b = tf.expand_dims(positions, 1)  # (bs, 1, 8, 2)
+                expanded_a = tf.expand_dims(positions, 1)  # (bs, 1, 8, 2)
+                expanded_b = tf.expand_dims(positions, 2)  # (bs, 8, 1, 2)
                 return tf.sqrt(tf.reduce_sum(tf.squared_difference(expanded_a, expanded_b), 3))  # (bs, 8, 8)
 
             distances = dist(positions)
