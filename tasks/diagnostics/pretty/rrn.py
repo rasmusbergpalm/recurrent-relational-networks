@@ -65,7 +65,6 @@ class PrettyRRN(Model):
             """
             bs = self.batch_size // len(self.devices)
             segment_ids = sum([[i] * n_nodes for i in range(bs)], [])
-            edge_segments = sum([[i] * 56 for i in range(bs)], [])
 
             edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes) if i != j]
             edges = [(i + (b * n_nodes), j + (b * n_nodes)) for b in range(bs) for i, j in edges]
@@ -94,20 +93,22 @@ class PrettyRRN(Model):
             distances = tf.sqrt(tf.reduce_sum(tf.square(distances[:, 0] - distances[:, 1]), axis=1, keep_dims=True))  # (n_edges, 1)
 
             question = tf.one_hot(anchors, n_anchors_targets)
-            question = tf.gather(question, edge_segments)
+            # question = tf.gather(question, segment_ids)
+            question = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes, 1]), [bs * n_nodes, 16])
 
-            x = tf.concat([positions, colors, markers], axis=1)
+            x = tf.concat([positions, colors, markers, question], axis=1)
             x = mlp(x, 'pre')
 
             # logits = layers.fully_connected(x, n_anchors_targets, activation_fn=None, scope="logits")
 
-            n_edges = tf.shape(edges)[0]
-            """            
-            question = tf.concat([tf.one_hot(anchors, n_anchors_targets), tf.one_hot(n_jumps, self.n_objects)], axis=1)  # (bs, 24)
-            question = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes, 1]), [n_edges, 24])        
             """
-            edge_features = tf.reshape(tf.concat([question, distances], axis=1), [n_edges, 17])
-            # edge_features = distances
+            n_edges = tf.shape(edges)[0]
+            question = tf.concat([tf.one_hot(anchors, n_anchors_targets), tf.one_hot(n_jumps, self.n_objects)], axis=1)  # (bs, 24)
+            question = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes, 1]), [n_edges, 24])
+
+            edge_features = tf.reshape(tf.concat([question, distances], axis=1), [n_edges, 25])
+            """
+            edge_features = distances
 
             with tf.variable_scope('steps'):
                 outputs = []
