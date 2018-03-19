@@ -65,6 +65,7 @@ class PrettyRRN(Model):
             """
             bs = self.batch_size // len(self.devices)
             segment_ids = sum([[i] * n_nodes for i in range(bs)], [])
+            edge_segments = sum([[i] * 56 for i in range(bs)], [])
 
             edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes) if i != j]
             edges = [(i + (b * n_nodes), j + (b * n_nodes)) for b in range(bs) for i, j in edges]
@@ -93,21 +94,20 @@ class PrettyRRN(Model):
             distances = tf.sqrt(tf.reduce_sum(tf.square(distances[:, 0] - distances[:, 1]), axis=1, keep_dims=True))  # (n_edges, 1)
 
             question = tf.one_hot(anchors, n_anchors_targets)
-            question = tf.gather(question, segment_ids)
+            question = tf.gather(question, edge_segments)
 
-            x = tf.concat([positions, colors, markers, question], axis=1)
+            x = tf.concat([positions, colors, markers], axis=1)
             x = mlp(x, 'pre')
 
             # logits = layers.fully_connected(x, n_anchors_targets, activation_fn=None, scope="logits")
 
-            """
             n_edges = tf.shape(edges)[0]
+            """            
             question = tf.concat([tf.one_hot(anchors, n_anchors_targets), tf.one_hot(n_jumps, self.n_objects)], axis=1)  # (bs, 24)
-            question = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes, 1]), [n_edges, 24])
-
-            edge_features = tf.reshape(tf.concat([question, distances], axis=1), [n_edges, 25])
+            question = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes, 1]), [n_edges, 24])        
             """
-            edge_features = distances
+            edge_features = tf.reshape(tf.concat([question, distances], axis=1), [n_edges, 17])
+            # edge_features = distances
 
             with tf.variable_scope('steps'):
                 outputs = []
@@ -120,9 +120,7 @@ class PrettyRRN(Model):
                     x = mlp(tf.concat([x, x0], axis=1), 'post')
                     # x, state = lstm_cell(x, state)
 
-                    # logits = tf.unsorted_segment_sum(x, segment_ids, bs)
-                    logits = tf.reshape(x, (bs, n_nodes, self.n_hidden))
-                    logits = tf.reduce_sum(logits, axis=1)
+                    logits = tf.unsorted_segment_sum(x, segment_ids, bs)
                     logits = mlp(logits, "out", n_out=n_anchors_targets, keep_prob=0.5)
 
                     out = tf.argmax(logits, axis=1)
