@@ -66,7 +66,7 @@ class PrettyRRN(Model):
             bs = self.batch_size // len(self.devices)
             segment_ids = sum([[i] * n_nodes for i in range(bs)], [])
 
-            edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes) if i != j]
+            edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes)]
             edges = [(i + (b * n_nodes), j + (b * n_nodes)) for b in range(bs) for i, j in edges]
             assert len(list(nx.connected_component_subgraphs(nx.Graph(edges)))) == bs
             edges = tf.constant(edges, tf.int32)  # (bs*8*8, 2)
@@ -96,7 +96,7 @@ class PrettyRRN(Model):
             question = tf.gather(question, segment_ids)
 
             x = tf.concat([positions, colors, markers, question], axis=1)
-            # x = mlp(x, 'pre')
+            x = mlp(x, 'pre')
 
             # logits = layers.fully_connected(x, n_anchors_targets, activation_fn=None, scope="logits")
 
