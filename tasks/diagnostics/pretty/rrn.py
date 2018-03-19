@@ -96,7 +96,7 @@ class PrettyRRN(Model):
             question = tf.gather(question, segment_ids)
 
             x = tf.concat([positions, colors, markers, question], axis=1)
-            x = mlp(x, 'pre')
+            # x = mlp(x, 'pre')
 
             # logits = layers.fully_connected(x, n_anchors_targets, activation_fn=None, scope="logits")
 
