@@ -27,7 +27,7 @@ class PrettyRRN(Model):
     n_objects = 8
     data = PrettyClevr()
     n_steps = 1
-    n_hidden = 256
+    n_hidden = 128
     devices = util.get_devices()
 
     def __init__(self):
@@ -64,34 +64,41 @@ class PrettyRRN(Model):
             :param colors: (bs, 8)
             """
             bs = self.batch_size // len(self.devices)
-            """
-            edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes)]
+            segment_ids = sum([[i] * n_nodes for i in range(bs)], [])
+
+            edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes) if i != j]
             edges = [(i + (b * n_nodes), j + (b * n_nodes)) for b in range(bs) for i, j in edges]
             assert len(list(nx.connected_component_subgraphs(nx.Graph(edges)))) == bs
             edges = tf.constant(edges, tf.int32)  # (bs*8*8, 2)
-
+            """
             
             x = ((1. - tf.to_float(img) / 255.) - 0.5)  # (bs, h, w, 3)
             with tf.variable_scope('encoder'):
                 for i in range(5):
                     x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=2)  # (bs, 4, 4, 128)
             x = tf.reshape(x, (bs * n_nodes, self.n_hidden))
-            """
+            
 
             def dist(positions):
                 expanded_a = tf.expand_dims(positions, 2)  # (bs, 8, 1, 2)
                 expanded_b = tf.expand_dims(positions, 1)  # (bs, 1, 8, 2)
                 return tf.sqrt(tf.reduce_sum(tf.squared_difference(expanded_a, expanded_b), 3))  # (bs, 8, 8)
+            """
 
-            distances = tf.reshape(dist(positions), (bs, 8 * 8))
-            positions = tf.reshape(positions, (bs, n_nodes * 2))
-            colors = tf.reshape(tf.one_hot(colors, 8), (bs, n_nodes * 8))
-            markers = tf.reshape(tf.one_hot(markers - 8, 8), (bs, n_nodes * 8))
+            colors = tf.reshape(tf.one_hot(colors, 8), (bs * n_nodes, 8))
+            markers = tf.reshape(tf.one_hot(markers - 8, 8), (bs * n_nodes, 8))
+            positions = tf.reshape(positions, (bs * n_nodes, 2))
+
+            distances = tf.gather(positions, edges)  # (n_edges, 2, 2)
+            distances = tf.sqrt(tf.reduce_sum(tf.square(distances[:, 0] - distances[:, 1]), axis=1, keep_dims=True))  # (n_edges, 1)
+
             question = tf.one_hot(anchors, n_anchors_targets)
+            question = tf.gather(question, segment_ids)
 
-            x = tf.concat([positions, colors, markers, distances, question], axis=1)
-            x = mlp(x, 'mlp')
-            logits = layers.fully_connected(x, n_anchors_targets, activation_fn=None, scope="logits")
+            x = tf.concat([positions, colors, markers, question], axis=1)
+            x = mlp(x, 'pre')
+
+            # logits = layers.fully_connected(x, n_anchors_targets, activation_fn=None, scope="logits")
 
             """
             n_edges = tf.shape(edges)[0]
@@ -100,24 +107,21 @@ class PrettyRRN(Model):
 
             edge_features = tf.reshape(tf.concat([question, distances], axis=1), [n_edges, 25])
             """
+            edge_features = distances
 
             with tf.variable_scope('steps'):
                 outputs = []
                 losses = []
                 x0 = x
-                lstm_cell = LSTMCell(self.n_hidden)
-                state = lstm_cell.zero_state(n_nodes * bs, tf.float32)
+                # lstm_cell = LSTMCell(self.n_hidden)
+                # state = lstm_cell.zero_state(n_nodes * bs, tf.float32)
                 for step in range(self.n_steps):
-                    """
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                     x = mlp(tf.concat([x, x0], axis=1), 'post')
-                    x, state = lstm_cell(x, state)
+                    # x, state = lstm_cell(x, state)
 
-                    logits = x
-                    logits = tf.reshape(logits, (bs, n_nodes, self.n_hidden))
-                    logits = tf.reduce_sum(logits, axis=1)
+                    logits = tf.unsorted_segment_sum(x, segment_ids, bs)
                     logits = mlp(logits, "out", n_out=n_anchors_targets, keep_prob=0.5)
-                    """
 
                     out = tf.argmax(logits, axis=1)
                     outputs.append(out)
