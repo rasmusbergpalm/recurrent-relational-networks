@@ -93,8 +93,7 @@ class PrettyRRN(Model):
             distances = tf.sqrt(tf.reduce_sum(tf.square(distances[:, 0] - distances[:, 1]), axis=1, keep_dims=True))  # (n_edges, 1)
 
             question = tf.one_hot(anchors, n_anchors_targets)
-            # question = tf.gather(question, segment_ids)
-            question = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes, 1]), [bs * n_nodes, 16])
+            question = tf.gather(question, segment_ids)
 
             x = tf.concat([positions, colors, markers, question], axis=1)
             x = mlp(x, 'pre')
