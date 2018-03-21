@@ -15,7 +15,6 @@ import numpy as np
 from PIL import Image
 import os
 import json
-from scipy.spatial.distance import cdist
 from os.path import basename
 
 
@@ -166,6 +165,6 @@ class PrettyClevrGenerator:
 
 if __name__ == '__main__':
     d = PrettyClevrGenerator(8)
-    d.generate(100000, 'train')
-    d.generate(1000, 'dev')
-    d.generate(1000, 'test')
+    d.generate(100000, '/scratch/pretty/train')
+    d.generate(1000, '/scratch/pretty/dev')
+    d.generate(1000, '/scratch/pretty/test')
