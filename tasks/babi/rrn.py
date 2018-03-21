@@ -30,6 +30,7 @@ class BaBiRecurrentRelationalNet(Model):
     n_steps = 3
     edge_keep_prob = 1.0
     n_hidden = 128
+    pretrained = "6659a66"
 
     def __init__(self, is_testing):
         super().__init__()
@@ -171,6 +172,9 @@ class BaBiRecurrentRelationalNet(Model):
 
             self.session.run(tf.global_variables_initializer())
             self.saver = tf.train.Saver()
+            if self.pretrained is not None:
+                self.load('../' + self.pretrained + '/best')
+
             util.print_vars(tf.trainable_variables())
 
             tensorboard_dir = os.environ.get('TENSORBOARD_DIR') or '/tmp/tensorboard'
