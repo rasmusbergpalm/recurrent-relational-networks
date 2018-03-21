@@ -27,10 +27,10 @@ class BaBiRecurrentRelationalNet(Model):
     batch_size = 512
     num_facts = 20
     qsize = len(devices) * 100
-    n_steps = 3
+    n_steps = 1
     edge_keep_prob = 1.0
     n_hidden = 128
-    pretrained = "6659a66"
+    pretrained = None
 
     def __init__(self, is_testing):
         super().__init__()
