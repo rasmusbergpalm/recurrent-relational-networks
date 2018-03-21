@@ -11,7 +11,7 @@ n_steps = BaBiRecurrentRelationalNet.n_steps
 def test_revision(revision):
     model = BaBiRecurrentRelationalNet(True)
     model.load("%s/%s/best" % (model_dir, revision))
-    batches = model.test_batches()
+    batches = np.array(model.test_batches())
 
     logits = np.concatenate(batches[:, 0], axis=1)  # (5, 40k, 177)
     answers = np.concatenate(batches[:, 1], axis=0)  # (40k, )
