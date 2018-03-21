@@ -19,7 +19,6 @@ from scipy.spatial.distance import cdist
 from os.path import basename
 
 
-
 def fig2array(fig):
     with io.BytesIO() as buf:  # this is pretty stupid but it was the only way I could get it rendered with anti-aliasing
         fig.savefig(buf, format='png')
@@ -145,57 +144,28 @@ class PrettyClevrGenerator:
 
         return fig2array(fig)
 
-    def generate(self, n):
+    def generate(self, n, folder):
+        os.mkdir(folder)
+        os.mkdir(folder + "/states")
+        os.mkdir(folder + "/images")
+
         gen = self.sample_generator()
-        with open('dict.json', 'w') as fp:
+        with open(folder + '/dict.json', 'w') as fp:
             json.dump(self.s2i, fp)
 
-        with open('questions.csv', 'w') as qf:
+        with open(folder + '/questions.csv', 'w') as qf:
             for i in range(n):
                 objects, img, questions = next(gen)
                 png_name = '%05d.png' % i
                 json_name = '%05d.json' % i
-                with open(json_name, 'w') as fp:
+                with open(folder + '/states/' + json_name, 'w') as fp:
                     json.dump(objects, fp)
-                Image.fromarray(img).save(png_name)
+                Image.fromarray(img).save(folder + '/images/' + png_name)
                 qf.writelines(["%s, %s, %s, %d, %s\n" % (png_name, json_name, a, b, c) for (a, b, c) in questions])
 
 
 if __name__ == '__main__':
-    d = PrettyClevr()
-    train_gen = d.train_generator()
-    dev_gen = d.dev_generator()
-    for i in range(4):
-        next(train_gen)
-        next(dev_gen)
-
-if __name__ == '__main2__':
-    d = PrettyClevr()
-    gen = d.sample_generator()
-
-    dists = {i: [] for i in range(8)}
-    for i in range(20000):
-        img, positions, colors, markers, anchor, n_jumps, target = next(gen)
-        if n_jumps == 0:
-            continue
-
-        if anchor < 8:
-            an = colors.index(anchor)
-        else:
-            an = markers.index(anchor)
-
-        if target < 8:
-            tn = colors.index(target)
-        else:
-            tn = markers.index(target)
-
-        dists[n_jumps].append(cdist(positions[tn][None], positions).mean())
-
-    import matplotlib
-
-    matplotlib.use('Agg')
-    for i, d in dists.items():
-        plt.hist(d, bins=np.linspace(0, np.sqrt(2), 32), label="%d" % i, alpha=0.5)
-    plt.legend()
-    plt.savefig('md-hist.png')
-    plt.close()
+    d = PrettyClevrGenerator(8)
+    d.generate(100000, 'train')
+    d.generate(1000, 'dev')
+    d.generate(1000, 'test')
