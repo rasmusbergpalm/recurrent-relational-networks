@@ -20,13 +20,13 @@ import matplotlib.pyplot as plt
 
 
 class PrettyRRN(Model):
-    number = 3
+    number = 1
     batch_size = 128
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     n_objects = 8
     data = PrettyClevr()
-    n_steps = 1
+    n_steps = 2
     n_hidden = 128
     devices = util.get_devices()
 
@@ -113,7 +113,7 @@ class PrettyRRN(Model):
                 outputs = []
                 losses = []
                 x0 = x
-                lstm_cell = LSTMCell(self.n_hidden, forget_bias=0.0)
+                lstm_cell = LSTMCell(self.n_hidden)
 
                 """
                 state = LSTMStateTuple(
