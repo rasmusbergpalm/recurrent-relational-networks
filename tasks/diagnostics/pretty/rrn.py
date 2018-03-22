@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 
 class PrettyRRN(Model):
-    number = 8
+    number = 1
     batch_size = 128
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
@@ -113,12 +113,12 @@ class PrettyRRN(Model):
                 outputs = []
                 losses = []
                 x0 = x
-                # lstm_cell = LSTMCell(self.n_hidden)
-                # state = lstm_cell.zero_state(n_nodes * bs, tf.float32)
+                lstm_cell = LSTMCell(self.n_hidden)
+                state = lstm_cell.zero_state(n_nodes * bs, tf.float32)
                 for step in range(self.n_steps):
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                     x = mlp(tf.concat([x, x0], axis=1), 'post')
-                    # x, state = lstm_cell(x, state)
+                    x, state = lstm_cell(x, state)
 
                     logits = tf.unsorted_segment_sum(x, segment_ids, bs)
                     logits = mlp(logits, "out", n_out=n_anchors_targets, keep_prob=0.5)

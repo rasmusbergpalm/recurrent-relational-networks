@@ -82,7 +82,7 @@ class PrettyClevr:
         questions, images, objects = set
         while True:
             for img_fname, json_name, anchor, n_jumps, target in random.sample(questions, len(questions)):
-                if n_jumps == "2":
+                if n_jumps == "1":
                     img = images[img_fname]
                     positions, colors, markers = objects[json_name]
 
