@@ -113,12 +113,16 @@ class PrettyRRN(Model):
                 outputs = []
                 losses = []
                 x0 = x
-                lstm_cell = LSTMCell(self.n_hidden)
+                lstm_cell = LSTMCell(self.n_hidden, forget_bias=0.0)
 
+                """
                 state = LSTMStateTuple(
                     tf.get_variable('LSTM/c_init', shape=(n_nodes * bs, self.n_hidden), dtype=tf.float32, initializer=tf.initializers.random_normal),
                     tf.get_variable('LSTM/h_init', shape=(n_nodes * bs, self.n_hidden), dtype=tf.float32, initializer=tf.initializers.random_normal)
                 )
+                """
+
+                state = lstm_cell.zero_state(n_nodes * bs, tf.float32)
 
                 for step in range(self.n_steps):
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
