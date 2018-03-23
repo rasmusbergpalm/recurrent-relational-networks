@@ -26,7 +26,7 @@ class PrettyRRN(Model):
     message = os.environ.get('MESSAGE')
     n_objects = 8
     data = PrettyClevr()
-    n_steps = 1
+    n_steps = 4
     n_hidden = 128
     devices = util.get_devices()
 
@@ -127,8 +127,8 @@ class PrettyRRN(Model):
                 for step in range(self.n_steps):
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                     x = mlp(tf.concat([x, x0], axis=1), 'post')
-                    # x = layers.batch_norm(x, is_training=self.is_training_ph, scope='BN')
-                    # x, state = lstm_cell(x, state)
+                    x = layers.batch_norm(x, is_training=self.is_training_ph, scope='BN')
+                    x, state = lstm_cell(x, state)
 
                     logits = tf.unsorted_segment_sum(x, segment_ids, bs)
                     logits = mlp(logits, "out", n_out=n_anchors_targets, keep_prob=0.5)
