@@ -26,7 +26,7 @@ class PrettyRRN(Model):
     message = os.environ.get('MESSAGE')
     n_objects = 8
     data = PrettyClevr()
-    n_steps = 2
+    n_steps = 1
     n_hidden = 128
     devices = util.get_devices()
 
