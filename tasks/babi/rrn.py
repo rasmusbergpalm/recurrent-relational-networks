@@ -18,7 +18,7 @@ from tasks.babi.data import bAbI
 
 
 class BaBiRecurrentRelationalNet(Model):
-    number = 8
+    number = 1
     devices = util.get_devices()
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
@@ -27,7 +27,7 @@ class BaBiRecurrentRelationalNet(Model):
     batch_size = 512
     num_facts = 20
     qsize = len(devices) * 100
-    n_steps = 1
+    n_steps = 3
     edge_keep_prob = 1.0
     n_hidden = 128
     pretrained = None
@@ -121,9 +121,8 @@ class BaBiRecurrentRelationalNet(Model):
                                 return layers.fully_connected(x, self.vocab.size(), activation_fn=None, weights_regularizer=regularizer)
 
                         x = tf.concat([f_encoding, tf.gather(q_encoding, fact_segments_ph)], 1)
-                        x0 = mlp(x, 'pre', self.n_hidden)
+                        x0 = x
                         edge_features = tf.gather(q_encoding, edge_segments_ph)
-                        x = x0
                         outputs = []
                         log_losses = []
                         with tf.variable_scope('steps'):
@@ -325,6 +324,7 @@ class BaBiRecurrentRelationalNet(Model):
     def test_batches(self):
         batches = []
         for task_idx, tasks in enumerate(self.test):
+            print(task_idx)
             for i in range(0, len(tasks), self.batch_size):
                 batch = tasks[i:i + self.batch_size]
 
