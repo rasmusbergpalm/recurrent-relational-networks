@@ -4,12 +4,10 @@ import matplotlib
 import networkx as nx
 import numpy as np
 import tensorflow as tf
-from tensorboard.plugins.custom_scalar import layout_pb2
 from tensorboard.plugins.image.summary import pb as ipb
 from tensorboard.plugins.scalar.summary import pb as spb
-from tensorboard.summary import custom_scalar_pb
 from tensorflow.contrib import layers
-from tensorflow.contrib.rnn import LSTMCell, LSTMStateTuple
+from tensorflow.contrib.rnn import LSTMCell
 from tensorflow.python.data import Dataset
 
 import util
@@ -42,7 +40,7 @@ class PrettyRRN(Model):
         self.optimizer = tf.train.AdamOptimizer(1e-4)
         self.is_training_ph = tf.placeholder(bool, name='is_training')
 
-        regularizer = layers.l2_regularizer(0.)
+        regularizer = layers.l2_regularizer(1e-4)
 
         train_iterator = self._iterator(self.data.train_generator, self.data.output_types(), self.data.output_shapes())
         dev_iterator = self._iterator(self.data.dev_generator, self.data.output_types(), self.data.output_shapes())
@@ -128,8 +126,8 @@ class PrettyRRN(Model):
 
                 for step in range(self.n_steps):
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
-                    x = mlp(tf.concat([x, x0], axis=1), 'post')
-                    # x = layers.batch_norm(x, is_training=self.is_training_ph, scope='BN')
+                    x = mlp(tf.concat([x, x0], axis=1), 'post', keep_prob=0.5)
+                    x = layers.batch_norm(x, is_training=self.is_training_ph, scope='BN')
                     x, state = lstm_cell(x, state)
 
                     logits = tf.unsorted_segment_sum(x, segment_ids, bs)
@@ -162,9 +160,9 @@ class PrettyRRN(Model):
 
         gvs = self.optimizer.compute_gradients(self.loss, colocate_gradients_with_ops=True)
         for g, v in gvs:
-            tf.summary.scalar("grad_norm/" + v.name, tf.norm(g))
-            # tf.summary.histogram("vars/" + v.name, v)
-            # tf.summary.histogram("g_ratio/" + v.name, g / (v + 1e-8))
+            tf.summary.histogram("grads/" + v.name, g)
+            tf.summary.histogram("vars/" + v.name, v)
+            tf.summary.histogram("g_ratio/" + v.name, g / (v + 1e-8))
 
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
@@ -177,21 +175,6 @@ class PrettyRRN(Model):
         tensorboard_dir = os.environ.get('TENSORBOARD_DIR') or '/tmp/tensorboard'
         self.train_writer = tf.summary.FileWriter(tensorboard_dir + '/pretty/%s/train/%s' % (self.revision, self.name), self.session.graph)
         self.test_writer = tf.summary.FileWriter(tensorboard_dir + '/pretty/%s/test/%s' % (self.revision, self.name), self.session.graph)
-
-        layout_summary = custom_scalar_pb(layout_pb2.Layout(
-            category=[
-                layout_pb2.Category(
-                    title='grad_norm',
-                    chart=[
-                        layout_pb2.Chart(
-                            title='grad_norm',
-                            multiline=layout_pb2.MultilineChartContent(
-                                tag=[r'grad_norm.*'],
-                            ))
-                    ])
-            ]))
-        self.train_writer.add_summary(layout_summary)
-
         self.summaries = tf.summary.merge_all()
 
     def train_batch(self):
