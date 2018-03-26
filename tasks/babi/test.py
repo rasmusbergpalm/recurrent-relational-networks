@@ -2,8 +2,7 @@ import numpy as np
 
 from tasks.babi.rrn import BaBiRecurrentRelationalNet
 
-# test_revisions = ['55a7603', 'bbf847c', '8f9b15a', '2fc1219', 'f32a8d4', 'bf7bbac', 'cb99b5e', 'c11152d', 'b4fabb4', 'fc69cd9', '3ce7b4a', '67b0b37', '0fe8f34', '134a555', 'f808acf']
-test_revisions = ['f32a8d4']
+test_revisions = ['322166d', 'e1ca890', 'e15881d', 'eb29727', '153613f', '96b0fef', '84ef1a9', 'ad5800f']
 
 model_dir = '/home/rapal/runs'
 n_steps = BaBiRecurrentRelationalNet.n_steps
