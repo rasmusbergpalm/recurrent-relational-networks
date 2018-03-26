@@ -121,6 +121,7 @@ class BaBiRecurrentRelationalNet(Model):
                                 return layers.fully_connected(x, self.vocab.size(), activation_fn=None, weights_regularizer=regularizer)
 
                         x = tf.concat([f_encoding, tf.gather(q_encoding, fact_segments_ph)], 1)
+                        x = layers.fully_connected(x, self.n_hidden, activation_fn=None, scope='pre')
                         x0 = x
                         edge_features = tf.gather(q_encoding, edge_segments_ph)
                         outputs = []
