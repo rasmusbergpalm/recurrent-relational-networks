@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 
 class PrettyRRN(Model):
-    number = 4
+    number = 1
     batch_size = 128
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
@@ -40,7 +40,7 @@ class PrettyRRN(Model):
         self.optimizer = tf.train.AdamOptimizer(1e-4)
         self.is_training_ph = tf.placeholder(bool, name='is_training')
 
-        regularizer = layers.l2_regularizer(1e-4)
+        regularizer = layers.l2_regularizer(0.)
 
         train_iterator = self._iterator(self.data.train_generator, self.data.output_types(), self.data.output_shapes())
         dev_iterator = self._iterator(self.data.dev_generator, self.data.output_types(), self.data.output_shapes())
