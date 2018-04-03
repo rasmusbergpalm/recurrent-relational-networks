@@ -14,7 +14,11 @@ tensorboard_url = "http://localhost:6007/data/plugin/scalars/scalars"
 
 def extract_scalars(run, tag):
     # ?run=ec566b2%2Ftest%2Fec566b2%20babi%20ablation%2C%20no%20qf%20encoding&tag=steps%2F2%2Ftasks%2Favg&format=json
-    return requests.get(tensorboard_url, params={"run": run, "tag": tag, "format": "json"}).json()
+    print(run, tag)
+    response = requests.get(tensorboard_url, params={"run": run, "tag": tag, "format": "json"})
+    print(response.status_code)
+    print(response.content)
+    return response.json()
 
 
 def get_run_name(revision):
@@ -24,6 +28,11 @@ def get_run_name(revision):
 
 
 def test_revision(revision):
+    print(revision)
+    step, wt, acc_1M = get_1M_acc(revision)
+    print(step, wt, acc_1M)
+
+
     model = BaBiRecurrentRelationalNet(True)
     model.load("%s/%s/best" % (model_dir, revision))
     batches = np.array(model.test_batches())
