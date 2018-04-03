@@ -85,6 +85,13 @@ class PrettyClevr:
                 if n_jumps == "4":
                     img = images[img_fname]
                     positions, colors, markers = objects[json_name]
+                    scaling_matrix = (2 ** (2 * np.random.rand() - 1)) * np.identity(2, np.float32)
+
+                    angle = np.random.rand() * 2 * np.pi
+                    rotation_matrix = np.array([[np.cos(angle), np.sin(angle)], [-np.sin(angle), np.cos(angle)]])
+
+                    positions = np.dot(positions, scaling_matrix)
+                    positions = np.dot(positions, rotation_matrix)
 
                     yield img, positions, colors, markers, self.s2i[anchor], int(n_jumps), self.s2i[target]
 
