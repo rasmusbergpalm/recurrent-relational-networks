@@ -76,7 +76,7 @@ def get_1M_acc(revision):
 
 def main():
     print("Testing...")
-    revisions = [test_revision(r) for r in experiments['test']]
+    revisions = [test_revision(r) for r in experiments[test]]
 
     for r in revisions:
         print("%s,%d,%f,%s", (r['revision'], r['step'], r['acc_1M'], ",".join(map(str, r['tasks']))))
