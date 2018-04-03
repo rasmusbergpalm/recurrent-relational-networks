@@ -25,10 +25,6 @@ def get_run_name(revision):
 
 
 def test_revision(revision):
-    print(revision)
-    step, wt, acc_1M = get_1M_acc(revision)
-    print(step, wt, acc_1M)
-
     model = BaBiRecurrentRelationalNet(True)
     model.load("%s/%s/best" % (model_dir, revision))
     batches = np.array(model.test_batches())
