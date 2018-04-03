@@ -1,32 +1,20 @@
-import os
 import glob
+import os
+
 import numpy as np
-import tensorflow as tf
-from tensorboard.backend.event_processing import plugin_event_multiplexer as event_multiplexer
+import requests
 
 from tasks.babi.rrn import BaBiRecurrentRelationalNet
 
 test_revisions = ['ec566b2', 'c8c0176', '2a52711', 'ec016fc', '4898860', '208b4a9', '63e0ff8', '0b0f4d2']
 model_dir = '/home/rapal/runs'
 tensorboard_dir = os.environ.get('TENSORBOARD_DIR') + '/bAbI/debug/'
+tensorboard_url = "http://localhost:6007/data/plugin/scalars/scalars"
 
 
-def extract_scalars(multiplexer, run, tag):
-    """Extract tabular data from the scalars at a given run and tag.
-    The result is a list of 3-tuples (wall_time, step, value).
-    """
-    tensor_events = multiplexer.Tensors(run, tag)
-    return [
-        (event.wall_time, event.step, tf.make_ndarray(event.tensor_proto).item())
-        for event in tensor_events
-    ]
-
-
-def create_multiplexer(logdir):
-    multiplexer = event_multiplexer.EventMultiplexer(tensor_size_guidance={'scalars': 1000})
-    multiplexer.AddRunsFromDirectory(logdir)
-    multiplexer.Reload()
-    return multiplexer
+def extract_scalars(run, tag):
+    # ?run=ec566b2%2Ftest%2Fec566b2%20babi%20ablation%2C%20no%20qf%20encoding&tag=steps%2F2%2Ftasks%2Favg&format=json
+    return requests.get(tensorboard_url, params={"run": run, "tag": tag, "format": "json"}).json()
 
 
 def get_run_name(revision):
@@ -35,7 +23,7 @@ def get_run_name(revision):
     return runs[0]
 
 
-def test_revision(revision, multiplexer):
+def test_revision(revision):
     model = BaBiRecurrentRelationalNet(True)
     model.load("%s/%s/best" % (model_dir, revision))
     batches = np.array(model.test_batches())
@@ -45,7 +33,7 @@ def test_revision(revision, multiplexer):
     task_indices = np.concatenate(batches[:, 2], axis=0)  # (40k, )
 
     print(revision)
-    step, wt, acc_1M = get_1M_acc(multiplexer, revision)
+    step, wt, acc_1M = get_1M_acc(revision)
     print(step, wt, acc_1M)
 
     for i in range(20):
@@ -56,9 +44,9 @@ def test_revision(revision, multiplexer):
         print(acc)
 
 
-def get_1M_acc(multiplexer, revision):
+def get_1M_acc(revision):
     run_name = get_run_name(revision)
-    scalars = extract_scalars(multiplexer, run_name, 'steps/' + str(BaBiRecurrentRelationalNet.n_steps) + '/tasks/avg')
+    scalars = extract_scalars(run_name, 'steps/' + str(BaBiRecurrentRelationalNet.n_steps) + '/tasks/avg')
     momentum = 0.95
     ewma_acc = scalars[0][2]
     step = 0
@@ -71,11 +59,9 @@ def get_1M_acc(multiplexer, revision):
 
 
 def main():
-    print("Creating multiplexer...")
-    multiplexer = create_multiplexer(tensorboard_dir)
     print("Testing revisions...")
     for r in test_revisions:
-        test_revision(r, multiplexer)
+        test_revision(r)
 
 
 if __name__ == '__main__':
