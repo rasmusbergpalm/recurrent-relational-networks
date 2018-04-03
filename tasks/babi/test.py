@@ -14,11 +14,7 @@ tensorboard_url = "http://localhost:6007/data/plugin/scalars/scalars"
 
 
 def extract_scalars(run, tag):
-    # ?run=ec566b2%2Ftest%2Fec566b2%20babi%20ablation%2C%20no%20qf%20encoding&tag=steps%2F2%2Ftasks%2Favg&format=json
-    print(run, tag)
     response = requests.get(tensorboard_url, params={"run": run, "tag": tag, "format": "json"})
-    print(response.status_code)
-    print(response.content)
     return response.json()
 
 
@@ -41,10 +37,10 @@ def test_revision(revision):
     answers = np.concatenate(batches[:, 1], axis=0)  # (40k, )
     task_indices = np.concatenate(batches[:, 2], axis=0)  # (40k, )
 
-    print(revision)
     step, wt, acc_1M = get_1M_acc(revision)
-    print(step, wt, acc_1M)
-
+    print(revision)
+    print(step)
+    print(acc_1M)
     for i in range(20):
         idx = task_indices == i
         expected = answers[idx]
@@ -56,14 +52,15 @@ def test_revision(revision):
 def get_1M_acc(revision):
     run_name = get_run_name(revision)
     scalars = extract_scalars(run_name, 'steps/' + str(BaBiRecurrentRelationalNet.n_steps - 1) + '/tasks/avg')
-    momentum = 0.95
+    ew = 0.95
     ewma_acc = scalars[0][2]
     step = 0
     wt = 0
     for wt, step, acc in scalars:
         if step > int(1e6):
-            return ewma_acc
-        ewma_acc = momentum * ewma_acc + (1 - momentum) * acc
+            return step, wt, ewma_acc
+        ewma_acc = ew * ewma_acc + (1 - ew) * acc
+
     return step, wt, ewma_acc
 
 
