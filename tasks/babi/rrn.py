@@ -325,7 +325,6 @@ class BaBiRecurrentRelationalNet(Model):
     def test_batches(self):
         batches = []
         for task_idx, tasks in enumerate(self.test):
-            print(task_idx)
             for i in range(0, len(tasks), self.batch_size):
                 batch = tasks[i:i + self.batch_size]
 

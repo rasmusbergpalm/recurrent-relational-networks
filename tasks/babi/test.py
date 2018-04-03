@@ -71,6 +71,12 @@ def get_1M_acc(multiplexer, revision):
 
 
 def main():
+    print("Creating multiplexer...")
     multiplexer = create_multiplexer(tensorboard_dir)
+    print("Testing revisions...")
     for r in test_revisions:
         test_revision(r, multiplexer)
+
+
+if __name__ == '__main__':
+    main()
