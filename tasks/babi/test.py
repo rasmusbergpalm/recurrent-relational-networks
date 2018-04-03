@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 import requests
+from os.path import relpath
 
 from tasks.babi.rrn import BaBiRecurrentRelationalNet
 
@@ -24,14 +25,13 @@ def extract_scalars(run, tag):
 def get_run_name(revision):
     runs = glob.glob(tensorboard_dir + revision + '/test/' + revision + '*')
     assert len(runs) == 1, "expected one folder, got " + str(runs)
-    return runs[0]
+    return relpath(runs[0], tensorboard_dir)
 
 
 def test_revision(revision):
     print(revision)
     step, wt, acc_1M = get_1M_acc(revision)
     print(step, wt, acc_1M)
-
 
     model = BaBiRecurrentRelationalNet(True)
     model.load("%s/%s/best" % (model_dir, revision))
@@ -55,7 +55,7 @@ def test_revision(revision):
 
 def get_1M_acc(revision):
     run_name = get_run_name(revision)
-    scalars = extract_scalars(run_name, 'steps/' + str(BaBiRecurrentRelationalNet.n_steps) + '/tasks/avg')
+    scalars = extract_scalars(run_name, 'steps/' + str(BaBiRecurrentRelationalNet.n_steps - 1) + '/tasks/avg')
     momentum = 0.95
     ewma_acc = scalars[0][2]
     step = 0
