@@ -127,7 +127,7 @@ class PrettyRRN(Model):
                 for step in range(self.n_steps):
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                     x = mlp(tf.concat([x, x0], axis=1), 'post')
-                    x = layers.batch_norm(x, is_training=self.is_training_ph, scope='BN')
+                    x = layers.batch_norm(x, is_training=self.is_training_ph, scope='BN', decay=0.9, zero_debias_moving_mean=True)
                     x, state = lstm_cell(x, state)
 
                     logits = tf.unsorted_segment_sum(x, segment_ids, bs)
@@ -158,15 +158,15 @@ class PrettyRRN(Model):
         self.loss = tf.reduce_mean(log_losses) + reg_loss
         tf.summary.scalar('loss', self.loss)
 
-        gvs = self.optimizer.compute_gradients(self.loss, colocate_gradients_with_ops=True)
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            gvs = self.optimizer.compute_gradients(self.loss, colocate_gradients_with_ops=True)
+            self.train_step = self.optimizer.apply_gradients(gvs, global_step=self.global_step)
+
         for g, v in gvs:
             tf.summary.histogram("grads/" + v.name, g)
             tf.summary.histogram("vars/" + v.name, v)
             tf.summary.histogram("g_ratio/" + v.name, g / (v + 1e-8))
-
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        with tf.control_dependencies(update_ops):
-            self.train_step = self.optimizer.apply_gradients(gvs, global_step=self.global_step)
 
         self.session.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver()
