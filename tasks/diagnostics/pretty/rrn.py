@@ -127,7 +127,7 @@ class PrettyRRN(Model):
                 for step in range(self.n_steps):
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                     x = mlp(tf.concat([x, x0], axis=1), 'post')
-                    x = layers.layer_norm(x, scope="LN")
+                    x = layers.batch_norm(x, is_training=self.is_training_ph, scope='BN', decay=0.9, zero_debias_moving_mean=True)
                     x, state = lstm_cell(x, state)
 
                     logits = tf.unsorted_segment_sum(x, segment_ids, bs)
@@ -149,7 +149,7 @@ class PrettyRRN(Model):
         )
 
         log_losses, outputs = util.batch_parallel(forward, self.devices, img=self.org_img, anchors=self.anchors, n_jumps=self.n_jumps, targets=self.targets, positions=positions, colors=colors, markers=markers)
-        log_losses = tf.reduce_mean(log_losses)
+        log_losses = tf.reduce_mean(log_losses[:, -1])
         self.outputs = tf.concat(outputs, axis=1)  # (splits, steps, bs)
 
         reg_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
