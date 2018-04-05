@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 
 class PrettyRRN(Model):
-    number = 4
+    number = 1
     batch_size = 128
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
@@ -127,8 +127,8 @@ class PrettyRRN(Model):
                 for step in range(self.n_steps):
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                     x = mlp(tf.concat([x, x0], axis=1), 'post')
-                    x = layers.batch_norm(x, is_training=self.is_training_ph, scope='BN', decay=0.9, zero_debias_moving_mean=True)
-                    x, state = lstm_cell(x, state)
+                    # x = layers.batch_norm(x, is_training=self.is_training_ph, scope='BN', decay=0.9, zero_debias_moving_mean=True)
+                    # x, state = lstm_cell(x, state)
 
                     logits = tf.unsorted_segment_sum(x, segment_ids, bs)
                     logits = mlp(logits, "out", n_out=n_anchors_targets, keep_prob=0.5)
@@ -187,7 +187,7 @@ class PrettyRRN(Model):
         return loss
 
     def val_batch(self):
-        loss, summaries, step, img, anchors, jumps, targets, outputs = self.session.run([self.loss, self.summaries, self.global_step, self.org_img, self.anchors, self.n_jumps, self.targets, self.outputs], {self.is_training_ph: True})
+        loss, summaries, step, img, anchors, jumps, targets, outputs = self.session.run([self.loss, self.summaries, self.global_step, self.org_img, self.anchors, self.n_jumps, self.targets, self.outputs], {self.is_training_ph: False})
         self._write_summaries(self.test_writer, summaries, img, anchors, jumps, targets, outputs, step)
         return loss
 
