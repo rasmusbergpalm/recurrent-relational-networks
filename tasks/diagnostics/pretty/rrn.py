@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 
 class PrettyRRN(Model):
-    number = 2
+    number = 1
     batch_size = 128
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
@@ -149,7 +149,7 @@ class PrettyRRN(Model):
         )
 
         log_losses, outputs = util.batch_parallel(forward, self.devices, img=self.org_img, anchors=self.anchors, n_jumps=self.n_jumps, targets=self.targets, positions=positions, colors=colors, markers=markers)
-        log_losses = tf.reduce_mean(log_losses)
+        log_losses = tf.reduce_mean(log_losses, axis=0)[-1]
         self.outputs = tf.concat(outputs, axis=1)  # (splits, steps, bs)
 
         reg_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
@@ -187,7 +187,7 @@ class PrettyRRN(Model):
         return loss
 
     def val_batch(self):
-        loss, summaries, step, img, anchors, jumps, targets, outputs = self.session.run([self.loss, self.summaries, self.global_step, self.org_img, self.anchors, self.n_jumps, self.targets, self.outputs], {self.is_training_ph: False})
+        loss, summaries, step, img, anchors, jumps, targets, outputs = self.session.run([self.loss, self.summaries, self.global_step, self.org_img, self.anchors, self.n_jumps, self.targets, self.outputs], {self.is_training_ph: True})
         self._write_summaries(self.test_writer, summaries, img, anchors, jumps, targets, outputs, step)
         return loss
 
