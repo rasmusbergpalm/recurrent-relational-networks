@@ -4,6 +4,7 @@ import urllib.request
 import zipfile
 import tensorflow as tf
 import numpy as np
+import time
 
 from tasks.entailment.parser import Parser, propositional_language, ParseResult
 
@@ -50,12 +51,16 @@ class Entailment:
     def sample_generator(self, fname):
         with open(self.dest_dir + '/' + fname, 'r') as fp:
             samples = [line.strip().split(',') for line in fp.readlines()]
-        while True:
-            for a, b, t, h1, h2, h3 in random.sample(samples, len(samples)):
-                a = self.parser.parse(a)
-                b = self.parser.parse(b)
-                a, b = self.normalize(a, b)
+        print("Parsing %s..." % fname)
+        parsed = []
+        for a, b, t, h1, h2, h3 in samples:
+            a = self.parser.parse(a)
+            b = self.parser.parse(b)
+            parsed.append((a, b, t))
 
+        while True:
+            for a, b, t in random.sample(parsed, len(parsed)):
+                a, b = self.normalize(a, b)
                 n_a, e_a = self.encode(a)
                 n_b, e_b = self.encode(b)
                 yield n_a, e_a, n_b, e_b, float(t)
@@ -76,14 +81,17 @@ class Entailment:
 
     def output_types(self):
         #       batch_n_a,  batch_e_a,  segments_a,     head_a,     batch_n_b,  batch_e_b,  segments_b,     head_b,     targets
-        return  tf.int32,   tf.int32,   tf.int32,       tf.int32,   tf.int32,    tf.int32,  tf.int32,       tf.int32,   tf.float32
+        return tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.int32, tf.float32
 
     def output_shapes(self):
         #       batch_n_a,  batch_e_a,  segments_a,     head_a,     batch_n_b,  batch_e_b,  segments_b,     head_b,     targets
-        return  (None,),      (None, 2),      (None,),        (None,),      (None,),      (None, 2),      (None,),        (None,),      (None,)
+        return (None,), (None, 2), (None,), (None,), (None,), (None, 2), (None,), (None,), (None,)
 
 
 if __name__ == '__main__':
     d = Entailment()
-    for n1, e1, s1, h1, n2, e2, s2, h2, t in d.batch_generator('train.txt', 4):
-        i = 0
+    start = time.perf_counter()
+    for i, s in enumerate(d.sample_generator('train.txt')):
+        if i % 1000 == 0:
+            took = time.perf_counter() - start
+            print("%f samples per second" % (i / took))
