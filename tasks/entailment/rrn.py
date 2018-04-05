@@ -66,6 +66,10 @@ class EntailmentRRN(Model):
         ea = encode_graph(nodes_a, edges_a, segments_a, heads_a, False)
         eb = encode_graph(nodes_b, edges_b, segments_b, heads_b, True)
         logits = mlp(tf.concat([ea, eb], axis=1), "logits", n_out=1)
+
+        acc = tf.reduce_mean(tf.to_float(tf.equal(tf.to_float(tf.greater(logits, 0)), targets)))
+        tf.summary.scalar('acc', acc)
+
         log_loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.reshape(targets, (-1, 1)), logits=logits) / tf.log(2.)
 
         reg_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
