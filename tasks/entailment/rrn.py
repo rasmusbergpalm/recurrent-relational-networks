@@ -65,7 +65,7 @@ class EntailmentRRN(Model):
 
         ea = encode_graph(nodes_a, edges_a, segments_a, heads_a, False)
         eb = encode_graph(nodes_b, edges_b, segments_b, heads_b, True)
-        logits = mlp(tf.concat([ea, eb], axis=1), "logits", n_out=1)  # (bs, 1)
+        logits = mlp(tf.concat([ea, eb], axis=1), "logits", n_out=1, keep_prob=0.5)  # (bs, 1)
         targets = tf.reshape(targets, (-1, 1))
 
         acc = tf.reduce_mean(tf.to_float(tf.equal(tf.to_float(tf.greater(logits, 0)), targets)))
