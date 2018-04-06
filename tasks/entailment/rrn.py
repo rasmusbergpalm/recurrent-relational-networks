@@ -65,12 +65,13 @@ class EntailmentRRN(Model):
 
         ea = encode_graph(nodes_a, edges_a, segments_a, heads_a, False)
         eb = encode_graph(nodes_b, edges_b, segments_b, heads_b, True)
-        logits = mlp(tf.concat([ea, eb], axis=1), "logits", n_out=1)
+        logits = mlp(tf.concat([ea, eb], axis=1), "logits", n_out=1)  # (bs, 1)
+        targets = tf.reshape(targets, (-1, 1))
 
         acc = tf.reduce_mean(tf.to_float(tf.equal(tf.to_float(tf.greater(logits, 0)), targets)))
         tf.summary.scalar('acc', acc)
 
-        log_loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.reshape(targets, (-1, 1)), logits=logits) / tf.log(2.)
+        log_loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=targets, logits=logits) / tf.log(2.)
 
         reg_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
         tf.summary.scalar('reg_loss', reg_loss)
@@ -83,10 +84,10 @@ class EntailmentRRN(Model):
             gvs = self.optimizer.compute_gradients(self.loss, colocate_gradients_with_ops=True)
             self.train_step = self.optimizer.apply_gradients(gvs, global_step=self.global_step)
 
-        for g, v in gvs:
-            tf.summary.histogram("grads/" + v.name, g)
-            tf.summary.histogram("vars/" + v.name, v)
-            tf.summary.histogram("g_ratio/" + v.name, tf.log(g) - tf.log(v + 1e-8))
+        for i, (g, v) in enumerate(gvs):
+            tf.summary.histogram("grads/%03d/%s" % (i, v.name), g)
+            tf.summary.histogram("vars/%03d/%s" % (i, v.name), v)
+            tf.summary.histogram("g_ratio/%03d/%s" % (i, v.name), tf.log(tf.abs(g) + 1e-8) - tf.log(tf.abs(v) + 1e-8))
 
         self.session.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver()
