@@ -86,7 +86,7 @@ class EntailmentRRN(Model):
         for g, v in gvs:
             tf.summary.histogram("grads/" + v.name, g)
             tf.summary.histogram("vars/" + v.name, v)
-            tf.summary.histogram("g_ratio/" + v.name, g / (v + 1e-8))
+            tf.summary.histogram("g_ratio/" + v.name, tf.log(g) - tf.log(v + 1e-8))
 
         self.session.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver()
