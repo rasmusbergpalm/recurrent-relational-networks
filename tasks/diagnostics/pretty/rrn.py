@@ -163,10 +163,10 @@ class PrettyRRN(Model):
             gvs = self.optimizer.compute_gradients(self.loss, colocate_gradients_with_ops=True)
             self.train_step = self.optimizer.apply_gradients(gvs, global_step=self.global_step)
 
-        for g, v in gvs:
-            tf.summary.histogram("grads/" + v.name, g)
-            tf.summary.histogram("vars/" + v.name, v)
-            tf.summary.histogram("g_ratio/" + v.name, tf.log(tf.abs(g) + 1e-8) - tf.log(tf.abs(v) + 1e-8))
+        for i, (g, v) in enumerate(gvs):
+            tf.summary.histogram("grads/%03d/%s" % (i, v.name), g)
+            tf.summary.histogram("vars/%03d/%s" % (i, v.name), v)
+            tf.summary.histogram("g_ratio/%03d/%s" % (i, v.name), tf.log(tf.abs(g) + 1e-8) - tf.log(tf.abs(v) + 1e-8))
 
         self.session.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver()
