@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 
 class PrettyRRN(Model):
-    number = 4
+    number = 2
     batch_size = 128
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
