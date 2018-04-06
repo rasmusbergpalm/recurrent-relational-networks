@@ -49,8 +49,8 @@ class PrettyRRN(Model):
 
         def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden, keep_prob=1.0):
             with tf.variable_scope(scope):
-                for i in range(1):
-                    x = layers.fully_connected(x, n_hid, weights_regularizer=regularizer, activation_fn=tf.nn.leaky_relu)
+                for i in range(3):
+                    x = layers.fully_connected(x, n_hid, weights_regularizer=regularizer)
                 x = layers.dropout(x, keep_prob=keep_prob, is_training=self.is_training_ph)
                 return layers.fully_connected(x, n_out, weights_regularizer=regularizer, activation_fn=None)
 
@@ -149,7 +149,7 @@ class PrettyRRN(Model):
         )
 
         log_losses, outputs = util.batch_parallel(forward, self.devices, img=self.org_img, anchors=self.anchors, n_jumps=self.n_jumps, targets=self.targets, positions=positions, colors=colors, markers=markers)
-        log_losses = tf.reduce_mean(log_losses, axis=0)[-1]
+        log_losses = tf.reduce_mean(log_losses)
         self.outputs = tf.concat(outputs, axis=1)  # (splits, steps, bs)
 
         reg_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
@@ -166,7 +166,7 @@ class PrettyRRN(Model):
         for g, v in gvs:
             tf.summary.histogram("grads/" + v.name, g)
             tf.summary.histogram("vars/" + v.name, v)
-            tf.summary.histogram("g_ratio/" + v.name, tf.log(g + 1e-8) - tf.log(v + 1e-8))
+            tf.summary.histogram("g_ratio/" + v.name, tf.log(tf.abs(g + 1e-8)) - tf.log(tf.abs(v + 1e-8)))
 
         self.session.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver()
