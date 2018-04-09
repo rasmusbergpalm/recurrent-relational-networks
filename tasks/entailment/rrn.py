@@ -17,7 +17,7 @@ class EntailmentRRN(Model):
     number = 1
     batch_size = 128
     data = Entailment()
-    n_steps = 16
+    n_steps = 32
     n_hidden = 128
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
