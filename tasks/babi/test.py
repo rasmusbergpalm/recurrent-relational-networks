@@ -12,6 +12,7 @@ experiments = {
     '1 step': ['322166d', 'e1ca890', 'e15881d', 'eb29727', '153613f', '96b0fef', '84ef1a9', 'ad5800f'],
     'linear qf': ['4e1d56c', 'ac440ad', '889fcb4', '7c0c35e', 'e144ca9', 'a58ea1a', '5273506', 'dd91e9a'],
     'only f': ['ec566b2', 'c8c0176', '2a52711', 'ec016fc', '4898860', '208b4a9', '63e0ff8', '0b0f4d2'],
+    'no dropout': ['c458dbe', 'ed0900f', 'db7e50d', 'c26a2a5', '48d6025', '7a8e4ba', '1623750', '93f6d7f']
 }
 test = 'linear qf'
 
