@@ -5,6 +5,7 @@ import zipfile
 import tensorflow as tf
 import numpy as np
 import time
+from joblib import Memory
 
 from tasks.entailment.parser import Parser, propositional_language, ParseResult
 
@@ -14,6 +15,7 @@ class Entailment:
     base_dir = (os.environ.get('DATA_DIR') or "/tmp")
     zip_fname = base_dir + "/entailment.zip"
     dest_dir = base_dir + '/entailment/'
+    memory = Memory(cachedir=base_dir + '/entailment_cache', verbose=0)
 
     def __init__(self):
         self.language = propositional_language()
@@ -49,6 +51,17 @@ class Entailment:
             yield batch_n_a, batch_e_a, segments_a, head_a, batch_n_b, batch_e_b, segments_b, head_b, targets
 
     def sample_generator(self, fname):
+        parsed = self.parse(fname)
+
+        while True:
+            for a, b, t in random.sample(parsed, len(parsed)):
+                a, b = self.normalize(a, b)
+                n_a, e_a = self.encode(a)
+                n_b, e_b = self.encode(b)
+                yield n_a, e_a, n_b, e_b, float(t)
+
+    @memory.cache
+    def parse(self, fname):
         with open(self.dest_dir + '/' + fname, 'r') as fp:
             samples = [line.strip().split(',') for line in fp.readlines()]
         print("Parsing %s..." % fname)
@@ -57,13 +70,7 @@ class Entailment:
             a = self.parser.parse(a)
             b = self.parser.parse(b)
             parsed.append((a, b, t))
-
-        while True:
-            for a, b, t in random.sample(parsed, len(parsed)):
-                a, b = self.normalize(a, b)
-                n_a, e_a = self.encode(a)
-                n_b, e_b = self.encode(b)
-                yield n_a, e_a, n_b, e_b, float(t)
+        return parsed
 
     def encode(self, p: ParseResult):
         edges = []
