@@ -77,6 +77,7 @@ class Entailment:
         for i, inputs in enumerate(p.inputs):
             for j in inputs:
                 edges.append((i + j, i))
+                edges.append((i, i + j))
         return [self.dict[op] for op in p.ops], edges
 
     def normalize(self, a: ParseResult, b: ParseResult):
