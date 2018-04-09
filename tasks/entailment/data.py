@@ -5,7 +5,7 @@ import zipfile
 import tensorflow as tf
 import numpy as np
 import time
-from joblib import Memory
+import pickle
 
 from tasks.entailment.parser import Parser, propositional_language, ParseResult
 
@@ -15,19 +15,26 @@ class Entailment:
     base_dir = (os.environ.get('DATA_DIR') or "/tmp")
     zip_fname = base_dir + "/entailment.zip"
     dest_dir = base_dir + '/entailment/'
-    memory = Memory(cachedir=base_dir + '/entailment_cache', verbose=0)
+    parsed_cache = base_dir + '/entailment_parsed.pkl'
 
     def __init__(self):
         self.language = propositional_language()
         self.dict = {k: i for i, k in enumerate(self.language.symbols)}
-        self.parser = Parser(self.language)
-        if not os.path.exists(self.dest_dir):
-            print("Downloading data...")
+        if not os.path.exists(self.parsed_cache):
+            if not os.path.exists(self.dest_dir):
+                print("Downloading data...")
 
-            urllib.request.urlretrieve(self.url, self.zip_fname)
-            with zipfile.ZipFile(self.zip_fname) as f:
-                f.extractall(self.base_dir)
-        self.parse = self.memory.cache(self.parse)
+                urllib.request.urlretrieve(self.url, self.zip_fname)
+                with zipfile.ZipFile(self.zip_fname) as f:
+                    f.extractall(self.base_dir)
+
+            self.parser = Parser(self.language)
+            parsed = {k: self.parse(k) for k in {'train.txt', 'validate.txt'}}
+            with open(self.parsed_cache, 'wb') as f:
+                pickle.dump(parsed, f)
+
+        with open(self.parsed_cache, 'rb') as f:
+            self.parsed = pickle.load(f)
 
     def batch_generator(self, fname, bs):
         sg = self.sample_generator(fname)
@@ -52,7 +59,7 @@ class Entailment:
             yield batch_n_a, batch_e_a, segments_a, head_a, batch_n_b, batch_e_b, segments_b, head_b, targets
 
     def sample_generator(self, fname):
-        parsed = self.parse(fname)
+        parsed = self.parsed[fname]
 
         while True:
             for a, b, t in random.sample(parsed, len(parsed)):
@@ -62,9 +69,9 @@ class Entailment:
                 yield n_a, e_a, n_b, e_b, float(t)
 
     def parse(self, fname):
+        print("Parsing %s..." % fname)
         with open(self.dest_dir + '/' + fname, 'r') as fp:
             samples = [line.strip().split(',') for line in fp.readlines()]
-        print("Parsing %s..." % fname)
         parsed = []
         for a, b, t, h1, h2, h3 in samples:
             a = self.parser.parse(a)
