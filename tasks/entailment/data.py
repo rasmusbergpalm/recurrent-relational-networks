@@ -27,6 +27,7 @@ class Entailment:
             urllib.request.urlretrieve(self.url, self.zip_fname)
             with zipfile.ZipFile(self.zip_fname) as f:
                 f.extractall(self.base_dir)
+        self.parse = self.memory.cache(self.parse)
 
     def batch_generator(self, fname, bs):
         sg = self.sample_generator(fname)
@@ -60,7 +61,6 @@ class Entailment:
                 n_b, e_b = self.encode(b)
                 yield n_a, e_a, n_b, e_b, float(t)
 
-    @memory.cache
     def parse(self, fname):
         with open(self.dest_dir + '/' + fname, 'r') as fp:
             samples = [line.strip().split(',') for line in fp.readlines()]
