@@ -8,13 +8,13 @@ import requests
 from tasks.babi.rrn import BaBiRecurrentRelationalNet
 
 experiments = {
-    'baseline': ['55a7603', 'bbf847c', '8f9b15a', '2fc1219', 'f32a8d4', 'bf7bbac', 'cb99b5e', 'c11152d', 'b4fabb4', 'fc69cd9', '3ce7b4a', '67b0b37', '0fe8f34', '134a555', 'f808acf'],
-    '1 step': ['322166d', 'e1ca890', 'e15881d', 'eb29727', '153613f', '96b0fef', '84ef1a9', 'ad5800f'],
+    'baseline': ['8a16a10', 'c94d161', '4dafa06', '666db79', '140f16a', 'c1c99a2', '17446a7', '0f31737', '5fe495d', '3c4576f', '9ffa0b8', '81eee06', '8089d12', 'a460279', 'b5bd840'],
     'linear qf': ['4e1d56c', 'ac440ad', '889fcb4', '7c0c35e', 'e144ca9', 'a58ea1a', '5273506', 'dd91e9a'],
     'only f': ['ec566b2', 'c8c0176', '2a52711', 'ec016fc', '4898860', '208b4a9', '63e0ff8', '0b0f4d2'],
     'no dropout': ['c458dbe', 'ed0900f', 'db7e50d', 'c26a2a5', '48d6025', '7a8e4ba', '1623750', '93f6d7f']
 }
-test = 'linear qf'
+test = 'only f'
+n_steps = 2
 
 model_dir = '/home/rapal/runs'
 tensorboard_dir = os.environ.get('TENSORBOARD_DIR') + '/bAbI/debug/'
@@ -52,7 +52,7 @@ def test_revision(revision):
     for i in range(20):
         idx = task_indices == i
         expected = answers[idx]
-        actual = np.argmax(logits[-1, idx, :], axis=1)
+        actual = np.argmax(logits[n_steps, idx, :], axis=1)
         acc = np.mean(expected == actual)
         result['tasks'].append(acc)
 
@@ -61,7 +61,8 @@ def test_revision(revision):
 
 def get_1M_acc(revision):
     run_name = get_run_name(revision)
-    scalars = extract_scalars(run_name, 'steps/' + str(BaBiRecurrentRelationalNet.n_steps - 1) + '/tasks/avg')
+
+    scalars = extract_scalars(run_name, 'steps/' + str(n_steps) + '/tasks/avg')
     ew = 0.95
     ewma_acc = scalars[0][2]
     step = 0
