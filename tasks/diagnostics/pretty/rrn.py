@@ -20,13 +20,13 @@ import matplotlib.pyplot as plt
 
 
 class PrettyRRN(Model):
-    number = 2
+    number = 1
     batch_size = 128
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     n_objects = 8
     data = PrettyClevr()
-    n_steps = 1
+    n_steps = 4
     n_hidden = 128
     devices = util.get_devices()
 
