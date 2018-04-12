@@ -149,7 +149,7 @@ class PrettyRRN(Model):
         )
 
         log_losses, outputs = util.batch_parallel(forward, self.devices, img=self.org_img, anchors=self.anchors, n_jumps=self.n_jumps, targets=self.targets, positions=positions, colors=colors, markers=markers)
-        log_losses = tf.reduce_mean(log_losses, axis=0)[-1]
+        log_losses = tf.reduce_mean(log_losses)
         self.outputs = tf.concat(outputs, axis=1)  # (splits, steps, bs)
 
         reg_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
