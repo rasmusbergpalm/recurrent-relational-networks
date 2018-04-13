@@ -20,7 +20,7 @@ class PhysicsRRN(Model):
     batch_size = 64
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
-    n_steps = 8
+    n_steps = 128
     n_hidden = 16
     n = 3
     devices = util.get_devices()
