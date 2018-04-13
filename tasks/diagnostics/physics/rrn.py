@@ -20,7 +20,7 @@ class PhysicsRRN(Model):
     batch_size = 64
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
-    n_steps = 128
+    n_steps = 32
     n_hidden = 16
     n = 3
     devices = util.get_devices()
@@ -29,7 +29,6 @@ class PhysicsRRN(Model):
         super().__init__()
         self.name = "%s %s" % (self.revision, self.message)
 
-        print("Building graph...")
         self.session = tf.Session(config=tf.ConfigProto(allow_soft_placement=False))
         self.global_step = tf.Variable(initial_value=0, trainable=False)
         self.optimizer = tf.train.AdamOptimizer(1e-4)
@@ -38,7 +37,10 @@ class PhysicsRRN(Model):
         bs = self.batch_size
         regularizer = layers.l2_regularizer(0.)
 
-        iterator = self._iterator(lambda: self.data.sample_generator(), self.output_types(), self.output_shapes())
+        train_iterator = self._iterator(lambda: self.data.train, self.output_types(), self.output_shapes())
+        dev_iterator = self._iterator(lambda: self.data.dev, self.output_types(), self.output_shapes())
+
+        print("Building graph...")
 
         def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden, keep_prob=1.0):
             with tf.variable_scope(scope):
@@ -47,7 +49,11 @@ class PhysicsRRN(Model):
                 x = layers.dropout(x, keep_prob=keep_prob, is_training=self.is_training_ph)
                 return layers.fully_connected(x, n_out, weights_regularizer=regularizer, activation_fn=None)
 
-        self.inputs = iterator.get_next()  # (bs, 3, 128, 4)
+        self.inputs = tf.cond(  # (bs, 3, 128, 4)
+            self.is_training_ph,
+            true_fn=lambda: train_iterator.get_next(),
+            false_fn=lambda: dev_iterator.get_next(),
+        )
         self.expected = tf.transpose(self.inputs[:, :, :, :2], (2, 0, 1, 3))
 
         self.inputs = tf.reshape(self.inputs, (bs * self.n, 128, 4))  # (bs*3, 128, 4)
@@ -117,7 +123,7 @@ class PhysicsRRN(Model):
 
     def val_batch(self):
         loss, summaries, step, outputs, expected = self.session.run([self.loss, self.summaries, self.global_step, self.outputs, self.expected], {self.is_training_ph: False})
-        self.write_summaries(self.test_writer, summaries, expected, outputs)
+        self.write_summaries(self.test_writer, summaries, step, expected, outputs)
         return loss
 
     def save(self, name):
@@ -140,11 +146,11 @@ class PhysicsRRN(Model):
     def output_shapes(self):
         return (3, 128, 4)
 
-    def write_summaries(self, writer, summaries, expected, outputs):
-        writer.add_summary(summaries)
+    def write_summaries(self, writer, summaries, step, expected, outputs):
+        writer.add_summary(summaries, step)
         img = self.data.trace_diff(expected[:outputs.shape[0], 0, :, :], outputs[:, 0, :, :])
         img_summary = ipb("trace", img[None])
-        writer.add_summary(img_summary)
+        writer.add_summary(img_summary, step)
         writer.flush()
 
 

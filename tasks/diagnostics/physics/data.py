@@ -1,4 +1,5 @@
 import io
+import urllib.request
 
 import matplotlib
 from PIL import Image
@@ -10,6 +11,7 @@ from matplotlib.animation import FuncAnimation
 from scipy.integrate import odeint
 import time
 import progressbar
+import os
 
 eps = 1e-2
 G = 100.
@@ -45,13 +47,32 @@ def newt(x, t):
 
 
 class NBody:
+    url = "https://www.dropbox.com/s/93943xmp4pvu1f2/3body.npz?dl=1"
+    base_dir = (os.environ.get('DATA_DIR') or "/tmp")
+    data_fname = base_dir + "/3body.npz"
+
+    def __init__(self):
+        if not os.path.exists(self.data_fname):
+            print("Downloading data...")
+            urllib.request.urlretrieve(self.url, self.data_fname)
+
+        with np.load(self.data_fname) as data:
+            samples = data['samples']
+            self.dev = self.sampler(samples[:10000])
+            self.train = self.sampler(samples[10000:])
+
+    def sampler(self, samples):
+        while True:
+            np.random.shuffle(samples)
+            for s in samples:
+                yield s
+
     def sample_generator(self, ):
         t = np.linspace(0, 1, 1024)
-        x0 = np.random.randn(12)
-        sol = odeint(newt, x0, t)
-        sol = sol.reshape(1024, 3, 4)
-
         while True:
+            x0 = np.random.randn(12)
+            sol = odeint(newt, x0, t)
+            sol = sol.reshape(1024, 3, 4)
             for a in np.split(sol, 8, axis=0):
                 yield np.transpose(a, (1, 0, 2)).astype(np.float32)
 
