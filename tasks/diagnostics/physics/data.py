@@ -84,7 +84,7 @@ if __name__ == '__main__':
     nbody = NBody()
     g = nbody.sample_generator()
     samples = []
-    stop = 1000000
+    stop = 100000
     for i in progressbar.progressbar(range(stop)):
         samples.append(next(g))
     np.savez_compressed('samples.npz', samples=samples)
