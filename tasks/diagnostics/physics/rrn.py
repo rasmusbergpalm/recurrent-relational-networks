@@ -34,11 +34,9 @@ class PhysicsRRN(Model):
         self.optimizer = tf.train.AdamOptimizer(1e-4)
         self.is_training_ph = tf.placeholder(bool, name='is_training')
         bs = self.batch_size
-
         regularizer = layers.l2_regularizer(0.)
 
-        train_iterator = self._iterator(data.sample_generator, self.output_types(), self.output_shapes())
-        dev_iterator = self._iterator(data.sample_generator, self.output_types(), self.output_shapes())
+        iterator = self._iterator(lambda: data.sample_generator(), self.output_types(), self.output_shapes())
 
         def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden, keep_prob=1.0):
             with tf.variable_scope(scope):
@@ -47,11 +45,7 @@ class PhysicsRRN(Model):
                 x = layers.dropout(x, keep_prob=keep_prob, is_training=self.is_training_ph)
                 return layers.fully_connected(x, n_out, weights_regularizer=regularizer, activation_fn=None)
 
-        self.nodes = tf.cond(  # (bs, 3, 128, 4)
-            self.is_training_ph,
-            true_fn=lambda: train_iterator.get_next(),
-            false_fn=lambda: dev_iterator.get_next(),
-        )
+        self.nodes = iterator.get_next()  # (bs, 3, 128, 4)
 
         self.nodes = tf.reshape(self.nodes, (bs * self.n, 128, 4))  # (bs*3, 128, 4)
 
@@ -137,10 +131,10 @@ class PhysicsRRN(Model):
         ).batch(self.batch_size).prefetch(1).make_one_shot_iterator()
 
     def output_types(self):
-        return tf.float32,
+        return tf.float32
 
     def output_shapes(self):
-        return (128, 3, 4),
+        return (3, 128, 4)
 
 
 if __name__ == '__main__':
