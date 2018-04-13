@@ -9,7 +9,8 @@ from tensorflow.python.data import Dataset
 import util
 from message_passing import message_passing
 from model import Model
-from tasks.diagnostics.physics import data
+from tensorboard.plugins.image.summary import pb as ipb
+from tasks.diagnostics.physics.data import NBody
 
 matplotlib.use('Agg')
 
@@ -19,7 +20,7 @@ class PhysicsRRN(Model):
     batch_size = 64
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
-    n_steps = 128
+    n_steps = 8
     n_hidden = 16
     n = 3
     devices = util.get_devices()
@@ -33,10 +34,11 @@ class PhysicsRRN(Model):
         self.global_step = tf.Variable(initial_value=0, trainable=False)
         self.optimizer = tf.train.AdamOptimizer(1e-4)
         self.is_training_ph = tf.placeholder(bool, name='is_training')
+        self.data = NBody()
         bs = self.batch_size
         regularizer = layers.l2_regularizer(0.)
 
-        iterator = self._iterator(lambda: data.sample_generator(), self.output_types(), self.output_shapes())
+        iterator = self._iterator(lambda: self.data.sample_generator(), self.output_types(), self.output_shapes())
 
         def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden, keep_prob=1.0):
             with tf.variable_scope(scope):
@@ -45,17 +47,18 @@ class PhysicsRRN(Model):
                 x = layers.dropout(x, keep_prob=keep_prob, is_training=self.is_training_ph)
                 return layers.fully_connected(x, n_out, weights_regularizer=regularizer, activation_fn=None)
 
-        self.nodes = iterator.get_next()  # (bs, 3, 128, 4)
+        self.inputs = iterator.get_next()  # (bs, 3, 128, 4)
+        self.expected = tf.transpose(self.inputs[:, :, :, :2], (2, 0, 1, 3))
 
-        self.nodes = tf.reshape(self.nodes, (bs * self.n, 128, 4))  # (bs*3, 128, 4)
+        self.inputs = tf.reshape(self.inputs, (bs * self.n, 128, 4))  # (bs*3, 128, 4)
 
         edges = [(i, j) for i in range(self.n) for j in range(self.n) if i != j]
         edges = [(i + (b * self.n), j + (b * self.n)) for b in range(bs) for i, j in edges]
         assert len(list(nx.connected_component_subgraphs(nx.Graph(edges)))) == bs
         edges = tf.constant(edges, tf.int32)  # (bs*3*3, 2)
 
-        x = self.nodes[:, 0, :]  # (bs*3, 4)
-        targets = self.nodes[:, :, :2]  # (bs*3, 128, 2) positions
+        x = self.inputs[:, 0, :]  # (bs*3, 4)
+        self.targets = self.inputs[:, :, :2]  # (bs*3, 128, 2) positions
 
         edge_features = tf.zeros((tf.shape(edges)[0], 1))
 
@@ -66,14 +69,15 @@ class PhysicsRRN(Model):
                 x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn', n_out=4))
                 out = mlp(x, "out", n_out=2)  # (bs*3, 2)
 
-                outputs.append(out)
-                loss = tf.losses.mean_squared_error(labels=targets[:, step], predictions=out)
+                outputs.append(out)  # (n_steps, bs*3, 2)
+                loss = tf.losses.mean_squared_error(labels=self.targets[:, step], predictions=out)
                 losses.append(loss)
 
                 tf.get_variable_scope().reuse_variables()
 
         losses = tf.reduce_mean(losses)
-        self.outputs = tf.concat(outputs, axis=1)  # (splits, steps, bs)
+        outputs = tf.concat(outputs, axis=0)  # (n_steps, bs*3, 2)
+        self.outputs = tf.reshape(outputs, (self.n_steps, bs, self.n, 2))
 
         reg_loss = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
         tf.summary.scalar('reg_loss', reg_loss)
@@ -112,8 +116,8 @@ class PhysicsRRN(Model):
         return loss
 
     def val_batch(self):
-        loss, summaries, step = self.session.run([self.loss, self.summaries, self.global_step], {self.is_training_ph: False})
-        self.test_writer.add_summary(summaries)
+        loss, summaries, step, outputs, expected = self.session.run([self.loss, self.summaries, self.global_step, self.outputs, self.expected], {self.is_training_ph: False})
+        self.write_summaries(self.test_writer, summaries, expected, outputs)
         return loss
 
     def save(self, name):
@@ -136,6 +140,12 @@ class PhysicsRRN(Model):
     def output_shapes(self):
         return (3, 128, 4)
 
+    def write_summaries(self, writer, summaries, targets, outputs):
+        writer.add_summary(summaries)
+        img = self.data.trace_diff(targets[:, 0, :, :], outputs[:, 0, :, :])
+        img_summary = ipb("trace", img[None])
+        writer.add_summary(img_summary)
+        writer.flush()
 
 if __name__ == '__main__':
     m = PhysicsRRN()

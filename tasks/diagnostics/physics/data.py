@@ -1,4 +1,7 @@
+import io
+
 import matplotlib
+from PIL import Image
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -44,13 +47,27 @@ def newt(x, t):
 class NBody:
     def sample_generator(self, ):
         t = np.linspace(0, 1, 1024)
+        x0 = np.random.randn(12)
+        sol = odeint(newt, x0, t)
+        sol = sol.reshape(1024, 3, 4)
 
         while True:
-            x0 = np.random.randn(12)
-            sol = odeint(newt, x0, t)
-            sol = sol.reshape(1024, 3, 4)
             for a in np.split(sol, 8, axis=0):
                 yield np.transpose(a, (1, 0, 2)).astype(np.float32)
+
+    def trace_diff(self, e, a):
+        plt.figure()
+        for i, c in zip(range(3), ['b-', 'r-', 'g-']):
+            plt.plot(e[:, i, 0], e[:, i, 1], c)
+        for i, c in zip(range(3), ['b--', 'r--', 'g--']):
+            plt.plot(a[:, i, 0], a[:, i, 1], c)
+
+        with io.BytesIO() as buf:
+            plt.savefig(buf, format='png')
+            plt.close()
+            buf.seek(0)
+            return np.array(Image.open(buf))
+
 
     def trace(self, sol):
         plt.figure()
