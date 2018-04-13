@@ -42,10 +42,10 @@ def newt(x, t):
 
 def sample_generator():
     t = np.linspace(0, 1, 1024)
+    x0 = np.random.randn(12)
+    sol = odeint(newt, x0, t)
+    sol = sol.reshape(1024, 3, 4)
     while True:
-        x0 = np.random.randn(12)
-        sol = odeint(newt, x0, t)
-        sol = sol.reshape(1024, 3, 4)
         for a in np.split(sol, 8, axis=0):
             yield np.transpose(a, (1, 0, 2))
 
