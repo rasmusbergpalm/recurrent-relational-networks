@@ -6,6 +6,7 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 from scipy.integrate import odeint
 import time
+import progressbar
 
 eps = 1e-2
 G = 100.
@@ -40,47 +41,50 @@ def newt(x, t):
     return dxdt
 
 
-def sample_generator():
-    t = np.linspace(0, 1, 1024)
-    x0 = np.random.randn(12)
-    sol = odeint(newt, x0, t)
-    sol = sol.reshape(1024, 3, 4)
-    while True:
-        for a in np.split(sol, 8, axis=0):
-            yield np.transpose(a, (1, 0, 2))
+class NBody:
+    def sample_generator(self, ):
+        t = np.linspace(0, 1, 1024)
 
+        while True:
+            x0 = np.random.randn(12)
+            sol = odeint(newt, x0, t)
+            sol = sol.reshape(1024, 3, 4)
+            for a in np.split(sol, 8, axis=0):
+                yield np.transpose(a, (1, 0, 2)).astype(np.float32)
 
-def trace(sol):
-    plt.figure()
-    plt.plot(sol[:, 0], sol[:, 1], 'b', sol[:, 4], sol[:, 5], 'r', sol[:, 8], sol[:, 9], 'g')
-    plt.savefig('trace.png')
-    plt.close()
+    def trace(self, sol):
+        plt.figure()
+        plt.plot(sol[:, 0], sol[:, 1], 'b', sol[:, 4], sol[:, 5], 'r', sol[:, 8], sol[:, 9], 'g')
+        plt.savefig('trace.png')
+        plt.close()
 
+    def animate(self, sol):
+        print("Animating...")
+        fig = plt.figure(figsize=(8, 8))
+        pos = sol[:, (0, 1, 4, 5, 8, 9)]
 
-def animate(sol):
-    print("Animating...")
-    fig = plt.figure(figsize=(8, 8))
-    pos = sol[:, (0, 1, 4, 5, 8, 9)]
+        ax = fig.add_subplot(111, autoscale_on=False, xlim=(pos.min(), pos.max()), ylim=(pos.min(), pos.max()))
+        ax.grid()
+        p1, = ax.plot([], [], 'bo-', lw=2)
+        p2, = ax.plot([], [], 'ro-', lw=2)
+        p3, = ax.plot([], [], 'go-', lw=2)
 
-    ax = fig.add_subplot(111, autoscale_on=False, xlim=(pos.min(), pos.max()), ylim=(pos.min(), pos.max()))
-    ax.grid()
-    p1, = ax.plot([], [], 'bo-', lw=2)
-    p2, = ax.plot([], [], 'ro-', lw=2)
-    p3, = ax.plot([], [], 'go-', lw=2)
+        def anim(sol):
+            p1.set_data(sol[0], sol[1])
+            p2.set_data(sol[4], sol[5])
+            p3.set_data(sol[8], sol[9])
+            return p1, p2, p3
 
-    def anim(sol):
-        p1.set_data(sol[0], sol[1])
-        p2.set_data(sol[4], sol[5])
-        p3.set_data(sol[8], sol[9])
-        return p1, p2, p3
-
-    ani = FuncAnimation(fig, anim, sol, blit=True)
-    ani.save('trace.mp4', fps=24)
+        ani = FuncAnimation(fig, anim, sol, blit=True)
+        ani.save('trace.mp4', fps=24)
 
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    g = sample_generator()
-    for i in range(1000):
-        sol = next(g)
-        print("%f samples/sec" % ((i + 1) / (time.perf_counter() - start)))
+    nbody = NBody()
+    g = nbody.sample_generator()
+    samples = []
+    stop = 1000000
+    for i in progressbar.progressbar(range(stop)):
+        samples.append(next(g))
+    np.savez_compressed('samples.npz', samples=samples)
