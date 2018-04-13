@@ -21,7 +21,7 @@ class PhysicsRRN(Model):
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     n_steps = 32
-    n_hidden = 16
+    n_hidden = 128
     n = 3
     devices = util.get_devices()
 
@@ -73,7 +73,7 @@ class PhysicsRRN(Model):
         with tf.variable_scope('steps'):
             for step in range(self.n_steps):
                 x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn', n_out=4))
-                out = mlp(x, "out", n_out=2)  # (bs*3, 2)
+                out = layers.fully_connected(x, 2, activation_fn=None, scope="out")  # (bs*3, 2)
 
                 outputs.append(out)  # (n_steps, bs*3, 2)
                 loss = tf.losses.mean_squared_error(labels=self.targets[:, step], predictions=out)
