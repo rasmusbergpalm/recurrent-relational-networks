@@ -140,12 +140,13 @@ class PhysicsRRN(Model):
     def output_shapes(self):
         return (3, 128, 4)
 
-    def write_summaries(self, writer, summaries, targets, outputs):
+    def write_summaries(self, writer, summaries, expected, outputs):
         writer.add_summary(summaries)
-        img = self.data.trace_diff(targets[:, 0, :, :], outputs[:, 0, :, :])
+        img = self.data.trace_diff(expected[:outputs.shape[0], 0, :, :], outputs[:, 0, :, :])
         img_summary = ipb("trace", img[None])
         writer.add_summary(img_summary)
         writer.flush()
+
 
 if __name__ == '__main__':
     m = PhysicsRRN()

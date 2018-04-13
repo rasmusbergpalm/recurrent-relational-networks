@@ -58,16 +58,15 @@ class NBody:
     def trace_diff(self, e, a):
         plt.figure()
         for i, c in zip(range(3), ['b-', 'r-', 'g-']):
-            plt.plot(e[:, i, 0], e[:, i, 1], c)
+            plt.plot(e[:, i, 0], e[:, i, 1], c, alpha=0.5)
         for i, c in zip(range(3), ['b--', 'r--', 'g--']):
-            plt.plot(a[:, i, 0], a[:, i, 1], c)
+            plt.plot(a[:, i, 0], a[:, i, 1], c, alpha=0.5)
 
         with io.BytesIO() as buf:
             plt.savefig(buf, format='png')
             plt.close()
             buf.seek(0)
             return np.array(Image.open(buf))
-
 
     def trace(self, sol):
         plt.figure()
