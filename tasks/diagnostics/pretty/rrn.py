@@ -170,11 +170,15 @@ class PrettyRRN(Model):
         except tf.errors.OutOfRangeError:
             pass
 
-        images, anchors, jumps, targets, outputs = (np.stack(v, axis=0) for v in zip(*batches))
+        images, anchors, jumps, targets, outputs = zip(*batches)
+        jumps = np.concatenate(jumps, axis=0)
+        targets = np.concatenate(targets, axis=0)
+        outputs = np.concatenate(outputs, axis=1)
 
         acc = np.array(self.compute_acc(jumps, outputs, targets))
         print(acc.shape)
         print(acc)
+        np.savez("results.npz", images=images, anchors=anchors, jumps=jumps, targets=targets, outputs=outputs, acc=acc)
 
     def save(self, name):
         self.saver.save(self.session, name)
@@ -233,5 +237,5 @@ class PrettyRRN(Model):
 
 if __name__ == '__main__':
     m = PrettyRRN()
-    print(m.train_batch())
     print(m.val_batch())
+    print(m.train_batch())
