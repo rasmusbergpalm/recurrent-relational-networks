@@ -7,7 +7,6 @@ import tensorflow as tf
 from tensorboard.plugins.image.summary import pb as ipb
 from tensorboard.plugins.scalar.summary import pb as spb
 from tensorflow.contrib import layers
-from tensorflow.contrib.rnn import LSTMCell
 from tensorflow.python.data import Dataset
 
 import util
@@ -70,20 +69,6 @@ class PrettyRRN(Model):
             edges = [(i + (b * n_nodes), j + (b * n_nodes)) for b in range(bs) for i, j in edges]
             assert len(list(nx.connected_component_subgraphs(nx.Graph(edges)))) == bs
             edges = tf.constant(edges, tf.int32)  # (bs*8*8, 2)
-            """
-            
-            x = ((1. - tf.to_float(img) / 255.) - 0.5)  # (bs, h, w, 3)
-            with tf.variable_scope('encoder'):
-                for i in range(5):
-                    x = layers.conv2d(x, num_outputs=self.n_hidden, kernel_size=3, stride=2)  # (bs, 4, 4, 128)
-            x = tf.reshape(x, (bs * n_nodes, self.n_hidden))
-            
-
-            def dist(positions):
-                expanded_a = tf.expand_dims(positions, 2)  # (bs, 8, 1, 2)
-                expanded_b = tf.expand_dims(positions, 1)  # (bs, 1, 8, 2)
-                return tf.sqrt(tf.reduce_sum(tf.squared_difference(expanded_a, expanded_b), 3))  # (bs, 8, 8)
-            """
 
             colors = tf.reshape(tf.one_hot(colors, 8), (bs * n_nodes, 8))
             markers = tf.reshape(tf.one_hot(markers - 8, 8), (bs * n_nodes, 8))
@@ -98,37 +83,16 @@ class PrettyRRN(Model):
             x = tf.concat([positions, colors, markers, question], axis=1)
             x = mlp(x, 'pre')
 
-            # logits = layers.fully_connected(x, n_anchors_targets, activation_fn=None, scope="logits")
-
-            """
-            n_edges = tf.shape(edges)[0]
-            question = tf.concat([tf.one_hot(anchors, n_anchors_targets), tf.one_hot(n_jumps, self.n_objects)], axis=1)  # (bs, 24)
-            question = tf.reshape(tf.tile(tf.expand_dims(question, 1), [1, n_nodes, 1]), [n_edges, 24])
-
-            edge_features = tf.reshape(tf.concat([question, distances], axis=1), [n_edges, 25])
-            """
             edge_features = distances
 
             with tf.variable_scope('steps'):
                 outputs = []
                 losses = []
                 x0 = x
-                lstm_cell = LSTMCell(self.n_hidden)
-
-                """
-                state = LSTMStateTuple(
-                    tf.get_variable('LSTM/c_init', shape=(n_nodes * bs, self.n_hidden), dtype=tf.float32, initializer=tf.initializers.random_normal),
-                    tf.get_variable('LSTM/h_init', shape=(n_nodes * bs, self.n_hidden), dtype=tf.float32, initializer=tf.initializers.random_normal)
-                )
-                """
-
-                state = lstm_cell.zero_state(n_nodes * bs, tf.float32)
 
                 for step in range(self.n_steps):
                     x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
                     x = mlp(tf.concat([x, x0], axis=1), 'post')
-                    # x = layers.batch_norm(x, is_training=self.is_training_ph, scope='BN', decay=0.9, zero_debias_moving_mean=True)
-                    # x, state = lstm_cell(x, state)
 
                     logits = tf.unsorted_segment_sum(x, segment_ids, bs)
                     logits = mlp(logits, "out", n_out=n_anchors_targets, keep_prob=0.5)
