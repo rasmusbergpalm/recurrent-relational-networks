@@ -88,7 +88,7 @@ def main():
         print("------------------ STEP %d ------------------" % i)
         for revision in revisions:
             r = revision[i]
-            print("%s,%d,%f,%s" % (r['revision'], r['r'], r['acc_1M'], ",".join(map(str, r['tasks']))))
+            print("%s,%d,%f,%s" % (r['revision'], r['step'], r['acc_1M'], ",".join(map(str, r['tasks']))))
 
 
 if __name__ == '__main__':
