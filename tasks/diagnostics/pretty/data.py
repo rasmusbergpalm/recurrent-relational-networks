@@ -80,22 +80,22 @@ class PrettyClevr:
         return self.sample_generator(self.dev)
 
     def test_generator(self):
-        return self.sample_generator(self.dev, n_repeat=1)
+        return self.sample_generator(self.dev, n_repeat=1, augment=False)
 
-    def sample_generator(self, set, n_repeat=-1):
+    def sample_generator(self, set, n_repeat=-1, augment=True):
         questions, images, objects = set
         count = 0
         while count < n_repeat or n_repeat == -1:
             for img_fname, json_name, anchor, n_jumps, target in random.sample(questions, len(questions)):
                 img = images[img_fname]
                 positions, colors, markers = objects[json_name]
-                scaling_matrix = (2 ** (2 * np.random.rand() - 1)) * np.identity(2, np.float32)
 
-                angle = np.random.rand() * 2 * np.pi
-                rotation_matrix = np.array([[np.cos(angle), np.sin(angle)], [-np.sin(angle), np.cos(angle)]])
-
-                positions = np.dot(positions, scaling_matrix)
-                positions = np.dot(positions, rotation_matrix)
+                if augment:
+                    scaling_matrix = (2 ** (2 * np.random.rand() - 1)) * np.identity(2, np.float32)
+                    angle = np.random.rand() * 2 * np.pi
+                    rotation_matrix = np.array([[np.cos(angle), np.sin(angle)], [-np.sin(angle), np.cos(angle)]])
+                    positions = np.dot(positions, scaling_matrix)
+                    positions = np.dot(positions, rotation_matrix)
 
                 yield img, positions, colors, markers, self.s2i[anchor], int(n_jumps), self.s2i[target]
             count += 1

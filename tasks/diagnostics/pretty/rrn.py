@@ -162,8 +162,19 @@ class PrettyRRN(Model):
         return loss
 
     def test_batches(self):
+        print("Testing...")
         batches = []
-        loss, summaries, step, img, anchors, jumps, targets, outputs = self.session.run([self.loss, self.summaries, self.global_step, self.org_img, self.anchors, self.n_jumps, self.targets, self.outputs], {self.mode: "test"})
+        try:
+            while True:
+                batches.append(self.session.run([self.org_img, self.anchors, self.n_jumps, self.targets, self.outputs], {self.mode: "test"}))
+        except tf.errors.OutOfRangeError:
+            pass
+
+        images, anchors, jumps, targets, outputs = (np.stack(v, axis=0) for v in zip(*batches))
+
+        acc = np.array(self.compute_acc(jumps, outputs, targets))
+        print(acc.shape)
+        print(acc)
 
     def save(self, name):
         self.saver.save(self.session, name)
@@ -194,13 +205,10 @@ class PrettyRRN(Model):
         return fig2array(fig)
 
     def _write_summaries(self, writer, summaries, img, anchors, jumps, targets, outputs, step):
-        for t in range(self.n_steps):
-            equal = outputs[t] == targets
-            for i in range(8):
-                jumps_i = jumps == i
-                if any(jumps_i):
-                    acc = np.mean(equal[jumps_i])
-                    writer.add_summary(spb("acc/%d/%d" % (t, i), acc), step)
+        accs = self.compute_acc(jumps, outputs, targets)
+        for step in range(self.n_steps):
+            for jump in range(8):
+                writer.add_summary(spb("acc/%d/%d" % (step, jump), accs[step][jump]), step)
 
         imgs = self._render(img[0], int(anchors[0]), int(jumps[0]), int(targets[0]), outputs)
         img_summary = ipb("img", imgs[None])
@@ -208,6 +216,19 @@ class PrettyRRN(Model):
 
         writer.add_summary(summaries, step)
         writer.flush()
+
+    def compute_acc(self, jumps, outputs, targets):
+        accs = []
+        for t in range(self.n_steps):
+            jumps_acc = []
+            equal = outputs[t] == targets
+            for i in range(8):
+                jumps_i = jumps == i
+                if any(jumps_i):
+                    acc = np.mean(equal[jumps_i])
+                    jumps_acc.append(acc)
+            accs.append(jumps_acc)
+        return accs
 
 
 if __name__ == '__main__':
