@@ -180,32 +180,33 @@ class BaBiRecurrentRelationalNet(Model):
 
             self.summaries = tf.summary.merge_all()
 
-        print("Starting data loaders...")
-        train_mp_queue = mp.Manager().Queue(maxsize=self.qsize)
-        val_mp_queue = mp.Manager().Queue(maxsize=self.qsize)
+        if not is_testing:
+            print("Starting data loaders...")
+            train_mp_queue = mp.Manager().Queue(maxsize=self.qsize)
+            val_mp_queue = mp.Manager().Queue(maxsize=self.qsize)
 
-        data_loader_processes = [mp.Process(target=self.data_loader, args=(train_mp_queue, True)) for i in range(4)]
-        val_data_loader_processes = [mp.Process(target=self.data_loader, args=(val_mp_queue, False)) for i in range(1)]
+            data_loader_processes = [mp.Process(target=self.data_loader, args=(train_mp_queue, True)) for i in range(4)]
+            val_data_loader_processes = [mp.Process(target=self.data_loader, args=(val_mp_queue, False)) for i in range(1)]
 
-        for p in data_loader_processes + val_data_loader_processes:
-            p.daemon = True
-            p.start()
+            for p in data_loader_processes + val_data_loader_processes:
+                p.daemon = True
+                p.start()
 
-        queue_putter_threads = [
-            threading.Thread(target=self.queue_putter, args=(train_mp_queue, self.train_enqueue_op, 'train', 1000)),
-            threading.Thread(target=self.queue_putter, args=(val_mp_queue, self.val_enqueue_op, 'val', 1)),
-        ]
-        for t in queue_putter_threads:
-            t.daemon = True
-            t.start()
+            queue_putter_threads = [
+                threading.Thread(target=self.queue_putter, args=(train_mp_queue, self.train_enqueue_op, 'train', 1000)),
+                threading.Thread(target=self.queue_putter, args=(val_mp_queue, self.val_enqueue_op, 'val', 1)),
+            ]
+            for t in queue_putter_threads:
+                t.daemon = True
+                t.start()
 
-        train_qsize, val_qsize = 0, 0
-        print("Waiting for queue to fill...")
-        while train_qsize < self.qsize or val_qsize < self.qsize:
-            train_qsize = self.session.run(self.train_qsize_op)
-            val_qsize = self.session.run(self.val_qsize_op)
-            print('train_qsize: %d, val_qsize: %d' % (train_qsize, val_qsize), flush=True)
-            time.sleep(1)
+            train_qsize, val_qsize = 0, 0
+            print("Waiting for queue to fill...")
+            while train_qsize < self.qsize or val_qsize < self.qsize:
+                train_qsize = self.session.run(self.train_qsize_op)
+                val_qsize = self.session.run(self.val_qsize_op)
+                print('train_qsize: %d, val_qsize: %d' % (train_qsize, val_qsize), flush=True)
+                time.sleep(1)
 
     def data_loader(self, queue: mp.Queue, is_training):
         while True:
