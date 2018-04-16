@@ -37,12 +37,15 @@ class PrettyRRN(Model):
         self.session = tf.Session(config=tf.ConfigProto(allow_soft_placement=False))
         self.global_step = tf.Variable(initial_value=0, trainable=False)
         self.optimizer = tf.train.AdamOptimizer(1e-4)
-        self.is_training_ph = tf.placeholder(bool, name='is_training')
+        self.mode = tf.placeholder(tf.string, name='mode')
+        self.is_training = tf.equal(self.mode, "train")
 
         regularizer = layers.l2_regularizer(0.)
 
         train_iterator = self._iterator(self.data.train_generator, self.data.output_types(), self.data.output_shapes())
         dev_iterator = self._iterator(self.data.dev_generator, self.data.output_types(), self.data.output_shapes())
+        test_iterator = self._iterator(self.data.test_generator, self.data.output_types(), self.data.output_shapes())
+
         n_nodes = 8
         n_anchors_targets = len(self.data.i2s)
 
@@ -50,7 +53,7 @@ class PrettyRRN(Model):
             with tf.variable_scope(scope):
                 for i in range(1):
                     x = layers.fully_connected(x, n_hid, weights_regularizer=regularizer)
-                x = layers.dropout(x, keep_prob=keep_prob, is_training=self.is_training_ph)
+                x = layers.dropout(x, keep_prob=keep_prob, is_training=self.is_training)
                 return layers.fully_connected(x, n_out, weights_regularizer=regularizer, activation_fn=None)
 
         def forward(img, anchors, n_jumps, targets, positions, colors, markers):
@@ -106,10 +109,13 @@ class PrettyRRN(Model):
 
             return losses, outputs
 
-        self.org_img, positions, colors, markers, self.anchors, self.n_jumps, self.targets = tf.cond(
-            self.is_training_ph,
-            true_fn=lambda: train_iterator.get_next(),
-            false_fn=lambda: dev_iterator.get_next(),
+        self.org_img, positions, colors, markers, self.anchors, self.n_jumps, self.targets = tf.case(
+            {
+                tf.equal(self.mode, "train"): lambda: train_iterator.get_next(),
+                tf.equal(self.mode, "dev"): lambda: dev_iterator.get_next(),
+                tf.equal(self.mode, "test"): lambda: test_iterator.get_next(),
+            },
+            exclusive=True
         )
 
         log_losses, outputs = util.batch_parallel(forward, self.devices, img=self.org_img, anchors=self.anchors, n_jumps=self.n_jumps, targets=self.targets, positions=positions, colors=colors, markers=markers)
@@ -144,16 +150,20 @@ class PrettyRRN(Model):
     def train_batch(self):
         step = self.session.run(self.global_step)
         if step % 1000 == 0:
-            _, loss, summaries = self.session.run([self.train_step, self.loss, self.summaries], {self.is_training_ph: True})
+            _, loss, summaries = self.session.run([self.train_step, self.loss, self.summaries], {self.mode: "train"})
             self.train_writer.add_summary(summaries, step)
         else:
-            _, loss = self.session.run([self.train_step, self.loss], {self.is_training_ph: True})
+            _, loss = self.session.run([self.train_step, self.loss], {self.mode: "train"})
         return loss
 
     def val_batch(self):
-        loss, summaries, step, img, anchors, jumps, targets, outputs = self.session.run([self.loss, self.summaries, self.global_step, self.org_img, self.anchors, self.n_jumps, self.targets, self.outputs], {self.is_training_ph: False})
+        loss, summaries, step, img, anchors, jumps, targets, outputs = self.session.run([self.loss, self.summaries, self.global_step, self.org_img, self.anchors, self.n_jumps, self.targets, self.outputs], {self.mode: "dev"})
         self._write_summaries(self.test_writer, summaries, img, anchors, jumps, targets, outputs, step)
         return loss
+
+    def test_batches(self):
+        batches = []
+        loss, summaries, step, img, anchors, jumps, targets, outputs = self.session.run([self.loss, self.summaries, self.global_step, self.org_img, self.anchors, self.n_jumps, self.targets, self.outputs], {self.mode: "test"})
 
     def save(self, name):
         self.saver.save(self.session, name)

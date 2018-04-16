@@ -46,6 +46,7 @@ class PrettyClevr:
 
         self.train = self.load_data(self.data_dir + '/train', self.s2i)
         self.dev = self.load_data(self.data_dir + '/dev', self.s2i)
+        self.test = self.load_data(self.data_dir + '/test', self.s2i)
 
     @staticmethod
     def load_data(data_dir, s2i):
@@ -78,9 +79,13 @@ class PrettyClevr:
     def dev_generator(self):
         return self.sample_generator(self.dev)
 
-    def sample_generator(self, set):
+    def test_generator(self):
+        return self.sample_generator(self.dev, n_repeat=1)
+
+    def sample_generator(self, set, n_repeat=-1):
         questions, images, objects = set
-        while True:
+        count = 0
+        while count < n_repeat or n_repeat == -1:
             for img_fname, json_name, anchor, n_jumps, target in random.sample(questions, len(questions)):
                 img = images[img_fname]
                 positions, colors, markers = objects[json_name]
@@ -93,6 +98,7 @@ class PrettyClevr:
                 positions = np.dot(positions, rotation_matrix)
 
                 yield img, positions, colors, markers, self.s2i[anchor], int(n_jumps), self.s2i[target]
+            count += 1
 
 
 class PrettyClevrGenerator:
