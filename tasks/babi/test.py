@@ -13,8 +13,8 @@ experiments = {
     'only f': ['ec566b2', 'c8c0176', '2a52711', 'ec016fc', '4898860', '208b4a9', '63e0ff8', '0b0f4d2'],
     'no dropout': ['c458dbe', 'ed0900f', 'db7e50d', 'c26a2a5', '48d6025', '7a8e4ba', '1623750', '93f6d7f']
 }
-test = 'no dropout'
-n_steps = 2
+test = 'baseline'
+n_steps = range(3)
 
 model_dir = '/home/rapal/runs'
 tensorboard_dir = os.environ.get('TENSORBOARD_DIR') + '/bAbI/debug/'
@@ -41,28 +41,33 @@ def test_revision(revision):
     answers = np.concatenate(batches[:, 1], axis=0)  # (40k, )
     task_indices = np.concatenate(batches[:, 2], axis=0)  # (40k, )
 
-    step, wt, acc_1M = get_1M_acc(revision)
+    steps = []
+    for n_step in n_steps:
+        step, wt, acc_1M = get_1M_acc(revision, n_step)
 
-    result = {
-        'revision': revision,
-        'step': step,
-        'acc_1M': acc_1M,
-        'tasks': []
-    }
-    for i in range(20):
-        idx = task_indices == i
-        expected = answers[idx]
-        actual = np.argmax(logits[n_steps, idx, :], axis=1)
-        acc = np.mean(expected == actual)
-        result['tasks'].append(acc)
+        result = {
+            'revision': revision,
+            'step': step,
+            'acc_1M': acc_1M,
+            'tasks': []
+        }
 
-    return result
+        for i in range(20):
+            idx = task_indices == i
+            expected = answers[idx]
+            actual = np.argmax(logits[n_step, idx, :], axis=1)
+            acc = np.mean(expected == actual)
+            result['tasks'].append(acc)
+
+        steps.append(result)
+
+    return steps
 
 
-def get_1M_acc(revision):
+def get_1M_acc(revision, n_step):
     run_name = get_run_name(revision)
 
-    scalars = extract_scalars(run_name, 'steps/' + str(n_steps) + '/tasks/avg')
+    scalars = extract_scalars(run_name, 'steps/' + str(n_step) + '/tasks/avg')
     ew = 0.95
     ewma_acc = scalars[0][2]
     step = 0
@@ -77,10 +82,12 @@ def get_1M_acc(revision):
 
 def main():
     print("Testing...")
-    revisions = [test_revision(r) for r in experiments[test]]
+    steps = [test_revision(r) for r in experiments[test]]
 
-    for r in revisions:
-        print("%s,%d,%f,%s" % (r['revision'], r['step'], r['acc_1M'], ",".join(map(str, r['tasks']))))
+    for i, revisions in enumerate(steps):
+        print("------------------ STEP %d ------------------" % i)
+        for r in revisions:
+            print("%s,%d,%f,%s" % (r['revision'], r['step'], r['acc_1M'], ",".join(map(str, r['tasks']))))
 
 
 if __name__ == '__main__':
