@@ -82,12 +82,13 @@ def get_1M_acc(revision, n_step):
 
 def main():
     print("Testing...")
-    steps = [test_revision(r) for r in experiments[test]]
+    revisions = [test_revision(r) for r in experiments[test]]
 
-    for i, revisions in enumerate(steps):
+    for i in n_steps:
         print("------------------ STEP %d ------------------" % i)
-        for r in revisions:
-            print("%s,%d,%f,%s" % (r['revision'], r['step'], r['acc_1M'], ",".join(map(str, r['tasks']))))
+        for revision in revisions:
+            r = revision[i]
+            print("%s,%d,%f,%s" % (r['revision'], r['r'], r['acc_1M'], ",".join(map(str, r['tasks']))))
 
 
 if __name__ == '__main__':
