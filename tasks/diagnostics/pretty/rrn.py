@@ -65,7 +65,7 @@ class PrettyRRN(Model):
             :param positions: (bs, 8, 2)
             :param colors: (bs, 8)
             """
-            bs = self.batch_size // len(self.devices)
+            bs = tf.shape(positions)[0]
             segment_ids = sum([[i] * n_nodes for i in range(bs)], [])
 
             edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes) if i != j]
