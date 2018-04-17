@@ -13,7 +13,7 @@ experiments = {
     'only f': ['ec566b2', 'c8c0176', '2a52711', 'ec016fc', '4898860', '208b4a9', '63e0ff8', '0b0f4d2'],
     'no dropout': ['c458dbe', 'ed0900f', 'db7e50d', 'c26a2a5', '48d6025', '7a8e4ba', '1623750', '93f6d7f']
 }
-test = 'only f'
+test = 'no dropout'
 n_steps = range(3)
 
 model_dir = '/home/rapal/runs'

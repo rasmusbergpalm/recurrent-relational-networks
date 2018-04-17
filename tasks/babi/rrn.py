@@ -114,12 +114,12 @@ class BaBiRecurrentRelationalNet(Model):
                         def graph_fn(x):
                             with tf.variable_scope('graph-fn'):
                                 x = layers.fully_connected(x, self.n_hidden, weights_regularizer=regularizer)
-                                x = layers.dropout(x, is_training=self.is_training_ph)
+                                # x = layers.dropout(x, is_training=self.is_training_ph)
                                 x = layers.fully_connected(x, self.n_hidden, weights_regularizer=regularizer)
-                                x = layers.dropout(x, is_training=self.is_training_ph)
+                                # x = layers.dropout(x, is_training=self.is_training_ph)
                                 return layers.fully_connected(x, self.vocab.size(), activation_fn=None, weights_regularizer=regularizer)
 
-                        x = f_encoding
+                        x = tf.concat([f_encoding, tf.gather(q_encoding, fact_segments_ph)], 1)
                         x = mlp(x, 'pre', self.n_hidden)
                         edge_features = tf.gather(q_encoding, edge_segments_ph)
                         x0 = x
