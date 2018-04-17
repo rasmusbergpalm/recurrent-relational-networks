@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 class PrettyRRN(Model):
     number = 1
-    batch_size = 128
+    batch_size = 100
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     n_objects = 8
@@ -65,7 +65,7 @@ class PrettyRRN(Model):
             :param positions: (bs, 8, 2)
             :param colors: (bs, 8)
             """
-            bs = tf.shape(positions)[0]
+            bs = self.batch_size // len(self.devices)
             segment_ids = sum([[i] * n_nodes for i in range(bs)], [])
 
             edges = [(i, j) for i in range(n_nodes) for j in range(n_nodes) if i != j]
