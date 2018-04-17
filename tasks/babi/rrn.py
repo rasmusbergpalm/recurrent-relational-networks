@@ -119,10 +119,10 @@ class BaBiRecurrentRelationalNet(Model):
                                 x = layers.dropout(x, is_training=self.is_training_ph)
                                 return layers.fully_connected(x, self.vocab.size(), activation_fn=None, weights_regularizer=regularizer)
 
-                        x = tf.concat([f_encoding, tf.gather(q_encoding, fact_segments_ph)], 1)
-                        x = layers.fully_connected(x, self.n_hidden, activation_fn=None, scope='pre')
-                        x0 = x
+                        x = f_encoding
+                        x = mlp(x, 'pre', self.n_hidden)
                         edge_features = tf.gather(q_encoding, edge_segments_ph)
+                        x0 = x
                         outputs = []
                         log_losses = []
                         with tf.variable_scope('steps'):
