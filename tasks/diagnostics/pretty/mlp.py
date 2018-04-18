@@ -3,7 +3,9 @@ import os
 import util
 from model import Model
 from tasks.diagnostics.pretty.data import PrettyClevr
+from tensorboard.plugins.scalar.summary import pb as spb
 import tensorflow as tf
+import numpy as np
 from tensorflow.python.data import Dataset
 from tensorflow.contrib import layers
 
@@ -94,9 +96,32 @@ class PrettyMLP(Model):
         return loss
 
     def val_batch(self):
-        loss, summaries, step = self.session.run([self.loss, self.summaries, self.global_step], {self.mode: "dev"})
-        self.test_writer.add_summary(summaries, step)
+        loss, summaries, step, outputs, targets, jumps = self.session.run([self.loss, self.summaries, self.global_step, self.out, self.targets, self.n_jumps], {self.mode: "dev"})
+        self._write_summaries(self.test_writer, summaries, jumps, targets, outputs, step)
         return loss
+
+    def _write_summaries(self, writer, summaries, jumps, targets, outputs, step):
+        accs = self.compute_acc(jumps, outputs, targets)
+        for jump in range(8):
+            writer.add_summary(spb("acc/0/%d" % jump, accs[jump]), step)
+        writer.add_summary(summaries, step)
+        writer.flush()
+
+    def compute_acc(self, jumps, outputs, targets):
+        """
+        :param jumps: (bs, )
+        :param outputs: (bs,)
+        :param targets: (bs,)
+        :return:
+        """
+        jumps_acc = []
+        equal = outputs == targets
+        for i in range(8):
+            jumps_i = jumps == i
+            if any(jumps_i):
+                acc = np.mean(equal[jumps_i])
+                jumps_acc.append(acc)
+        return jumps_acc
 
     def save(self, name):
         self.saver.save(self.session, name)
