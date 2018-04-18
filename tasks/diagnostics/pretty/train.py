@@ -1,4 +1,4 @@
 import trainer
-from tasks.diagnostics.pretty.rrn import PrettyRRN
+from tasks.diagnostics.pretty.mlp import PrettyMLP
 
-trainer.train(PrettyRRN())
+trainer.train(PrettyMLP())
