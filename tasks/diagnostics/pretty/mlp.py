@@ -57,9 +57,9 @@ class PrettyMLP(Model):
         x = tf.concat([colors, markers, positions, distances, anchors, jumps], axis=1)  # (bs, 64+64+64+16+16+8)
 
         for i in range(self.n_layers):
-            x = x + layers.fully_connected(x, num_outputs=self.n_hidden)
+            x = layers.fully_connected(x, num_outputs=self.n_hidden)
         x = layers.dropout(x, is_training=self.is_training)
-        logits = layers.fully_connected(x, num_outputs=16)
+        logits = layers.fully_connected(x, activation_fn=None, num_outputs=16)
 
         self.out = tf.argmax(logits, axis=1, output_type=tf.int32)
 
