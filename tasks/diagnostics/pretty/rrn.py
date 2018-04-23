@@ -20,12 +20,11 @@ import matplotlib.pyplot as plt
 
 class PrettyRRN(Model):
     number = 1
-    batch_size = 100
+    batch_size = 128
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     n_objects = 8
-    data = PrettyClevr()
-    n_steps = 1
+    n_steps = 4
     n_hidden = 128
     devices = util.get_devices()
 
@@ -39,6 +38,7 @@ class PrettyRRN(Model):
         self.optimizer = tf.train.AdamOptimizer(1e-4)
         self.mode = tf.placeholder(tf.string, name='mode')
         self.is_training = tf.equal(self.mode, "train")
+        self.data = PrettyClevr()
 
         regularizer = layers.l2_regularizer(0.)
 
