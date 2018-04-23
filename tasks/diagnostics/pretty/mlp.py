@@ -14,7 +14,6 @@ class PrettyMLP(Model):
     batch_size = 128
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
-    data = PrettyClevr()
     n_hidden = 256
     n_layers = 4
 
@@ -26,7 +25,7 @@ class PrettyMLP(Model):
         self.optimizer = tf.train.AdamOptimizer(1e-4)
         self.mode = tf.placeholder(tf.string, name='mode')
         self.is_training = tf.equal(self.mode, "train")
-        self.saver = tf.train.Saver()
+        self.data = PrettyClevr()
 
         train_iterator = self._iterator(self.data.train_generator, self.data.output_types(), self.data.output_shapes())
         dev_iterator = self._iterator(self.data.dev_generator, self.data.output_types(), self.data.output_shapes())
@@ -70,14 +69,15 @@ class PrettyMLP(Model):
         tf.summary.scalar("acc", acc)
 
         self.train_op = self.optimizer.minimize(self.loss, global_step=self.global_step)
+
+        self.session.run(tf.global_variables_initializer())
+        self.saver = tf.train.Saver()
         util.print_vars(tf.trainable_variables())
 
         tensorboard_dir = os.environ.get('TENSORBOARD_DIR') or '/tmp/tensorboard'
         self.train_writer = tf.summary.FileWriter(tensorboard_dir + '/pretty/%s/train/%s' % (self.revision, self.name), self.session.graph)
         self.test_writer = tf.summary.FileWriter(tensorboard_dir + '/pretty/%s/test/%s' % (self.revision, self.name), self.session.graph)
         self.summaries = tf.summary.merge_all()
-
-        self.session.run(tf.global_variables_initializer())
 
     def _iterator(self, generator, output_types, output_shapes):
         return Dataset.from_generator(
