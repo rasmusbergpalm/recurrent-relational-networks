@@ -80,7 +80,7 @@ class PrettyClevr:
         return self.sample_generator(self.dev)
 
     def test_generator(self):
-        return self.sample_generator(self.test, n_repeat=1, augment=False)
+        return self.sample_generator(self.test, n_repeat=1, augment=True)
 
     def sample_generator(self, set, n_repeat=-1, augment=True):
         questions, images, objects = set
