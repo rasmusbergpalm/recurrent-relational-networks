@@ -100,6 +100,25 @@ class PrettyMLP(Model):
         self._write_summaries(self.test_writer, summaries, jumps, targets, outputs, step)
         return loss
 
+    def test_batches(self):
+        print("Testing...")
+        batches = []
+        try:
+            while True:
+                batches.append(self.session.run([self.org_img, self.anchors, self.n_jumps, self.targets, self.out], {self.mode: "test"}))
+        except tf.errors.OutOfRangeError:
+            pass
+
+        images, anchors, jumps, targets, outputs = zip(*batches)
+        jumps = np.concatenate(jumps, axis=0)
+        targets = np.concatenate(targets, axis=0)
+        outputs = np.concatenate(outputs, axis=0)
+
+        acc = np.array(self.compute_acc(jumps, outputs, targets))
+        print(acc.shape)
+        print(acc)
+        np.savez("results.npz", images=images, anchors=anchors, jumps=jumps, targets=targets, outputs=outputs, acc=acc)
+
     def _write_summaries(self, writer, summaries, jumps, targets, outputs, step):
         accs = self.compute_acc(jumps, outputs, targets)
         for jump in range(8):
