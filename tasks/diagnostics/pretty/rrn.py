@@ -24,7 +24,7 @@ class PrettyRRN(Model):
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     n_objects = 8
-    n_steps = 4
+    n_steps = 1
     n_hidden = 128
     devices = util.get_devices()
 

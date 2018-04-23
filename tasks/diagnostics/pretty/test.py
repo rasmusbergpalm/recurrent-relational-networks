@@ -5,5 +5,5 @@ rrn_1_step = "../b7e022e/best"
 mlp = "../18d93a8/best"
 
 m = PrettyRRN()
-m.load(rrn_4_steps)
+m.load(rrn_1_step)
 m.test_batches()
