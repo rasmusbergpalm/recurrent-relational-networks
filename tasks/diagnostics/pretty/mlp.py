@@ -104,8 +104,8 @@ class PrettyMLP(Model):
         print("Testing...")
         batches = []
         try:
-            while True:
-                batches.append(self.session.run([self.org_img, self.anchors, self.n_jumps, self.targets, self.out], {self.mode: "test"}))
+            for i in range(1000):
+                batches.append(self.session.run([self.org_img, self.anchors, self.n_jumps, self.targets, self.out], {self.mode: "dev"}))
         except tf.errors.OutOfRangeError:
             pass
 
@@ -117,7 +117,7 @@ class PrettyMLP(Model):
         acc = np.array(self.compute_acc(jumps, outputs, targets))
         print(acc.shape)
         print(acc)
-        np.savez("results.npz", images=images, anchors=anchors, jumps=jumps, targets=targets, outputs=outputs, acc=acc)
+        # np.savez("results.npz", images=images, anchors=anchors, jumps=jumps, targets=targets, outputs=outputs, acc=acc)
 
     def _write_summaries(self, writer, summaries, jumps, targets, outputs, step):
         accs = self.compute_acc(jumps, outputs, targets)
