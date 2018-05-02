@@ -24,7 +24,7 @@ class PrettyRRN(Model):
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     n_objects = 8
-    n_steps = 1
+    n_steps = 4
     n_hidden = 128
     devices = util.get_devices()
 
@@ -84,20 +84,21 @@ class PrettyRRN(Model):
             question = tf.gather(question, segment_ids)
 
             x = tf.concat([positions, colors, markers, question], axis=1)
-            x = mlp(x, 'pre')
+            x = mlp(x, 'pre-fn')
 
             edge_features = distances
 
             with tf.variable_scope('steps'):
                 outputs = []
                 losses = []
-                x0 = x
+                h = x
 
                 for step in range(self.n_steps):
-                    x = message_passing(x, edges, edge_features, lambda x: mlp(x, 'message-fn'))
-                    x = mlp(tf.concat([x, x0], axis=1), 'post')
+                    h_p = h
+                    m = message_passing(h, edges, edge_features, lambda x: mlp(x, 'message-fn'))
+                    h = mlp(tf.concat([x, h_p, m], axis=1), 'node-fn')
 
-                    logits = tf.unsorted_segment_sum(x, segment_ids, bs)
+                    logits = tf.unsorted_segment_sum(h, segment_ids, bs)
                     logits = mlp(logits, "out", n_out=n_anchors_targets, keep_prob=0.5)
 
                     out = tf.argmax(logits, axis=1)
