@@ -13,7 +13,7 @@ model_dir = '/nobackup/titans/rapal/models/sudoku/2c9bfa6/'
 SudokuRecurrentRelationalNet.n_steps = n_steps = 64
 render_steps = True
 
-eval_fname = model_dir + '%d-zero-eval.npz' % n_steps
+eval_fname = model_dir + '%d-eval.npz' % n_steps
 if not os.path.exists(eval_fname):
     model = SudokuRecurrentRelationalNet(True)
 
@@ -38,7 +38,7 @@ answers = data['answers'].reshape(-1, 81)
 
 puzzle_correct = 0
 chars_correct = 0
-acc_fname = model_dir + '%d-zero-acc.npz' % n_steps
+acc_fname = model_dir + '%d-acc.npz' % n_steps
 if not os.path.exists(acc_fname):
     print("net")
     acc = np.zeros((n_steps, 18, 2))
