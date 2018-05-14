@@ -9,7 +9,7 @@ from tasks.sudoku.rrn import SudokuRecurrentRelationalNet
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-model_dir = './'
+model_dir = '/nobackup/titans/rapal/models/sudoku/2c9bfa6/'
 SudokuRecurrentRelationalNet.n_steps = n_steps = 64
 render_steps = True
 

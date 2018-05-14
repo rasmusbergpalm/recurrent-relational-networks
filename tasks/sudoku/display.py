@@ -15,7 +15,7 @@ def display(digit_logits: np.array, fname: str):
     :param fname: Where to save the rendered sudoku.
     """
     digit_probs = softmax(np.reshape(digit_logits[:, 1:], (9, 9, 9)), axis=2).reshape((9, 9, 3, 3))
-    nrows = 9
+    nrows = 1
     ncols = 9
 
     fig = plt.figure(figsize=(ncols, nrows))
