@@ -81,8 +81,9 @@ plt.ylabel('Accuracy')
 plt.xlabel('Steps')
 plt.axvline(x=32, ls='--', c='black')
 plt.grid()
-plt.savefig(model_dir + '%d-graph-puzzle-acc.pdf' % n_steps)
+plt.savefig(model_dir + '%d-graph-puzzle-acc.pdf' % n_steps, pad_inches=0)
 plt.close()
+exit(0)
 
 for i in range(18):
     print("%d givens: %f acc" % (i + 17, acc[-1, i, 1]))
