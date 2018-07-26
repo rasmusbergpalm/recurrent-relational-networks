@@ -3,7 +3,7 @@ import os
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import layers
-from tensorflow.contrib.data import Iterator
+from tensorflow.python.data import Iterator
 from tensorflow.contrib.rnn import LSTMCell
 from tensorflow.python.data import Dataset
 
