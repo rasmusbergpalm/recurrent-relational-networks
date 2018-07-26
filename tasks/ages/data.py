@@ -36,7 +36,7 @@ class Ages:
             types += [2]
             diffs += [ages[anchor]]
 
-            question = random.randint(0, self.n - 1)
+            question = anchor  # random.randint(0, self.n - 1)
             n_jumps = len(nx.shortest_path(g, anchor, question)) - 1
             answer = ages[question]
 
