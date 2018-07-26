@@ -164,8 +164,8 @@ class AgesRRN(Model):
     def _write_summaries(self, writer, summaries, outputs, answers, jumps, step):
         accs = self.compute_acc(jumps, outputs, answers)
         for s in range(self.n_steps):
-            for j in range(7):
-                writer.add_summary(spb("acc/%d/%d" % (s, j), accs[s][j]), step)
+            for j, v in accs[s].items():
+                writer.add_summary(spb("acc/%d/%d" % (s, j), v), step)
 
         writer.add_summary(summaries, step)
         writer.flush()
@@ -173,13 +173,13 @@ class AgesRRN(Model):
     def compute_acc(self, jumps, outputs, targets):
         accs = []
         for t in range(self.n_steps):
-            jumps_acc = []
+            jumps_acc = {}
             equal = outputs[t] == targets
             for i in range(7):
                 jumps_i = jumps == i
                 if any(jumps_i):
                     acc = np.mean(equal[jumps_i])
-                    jumps_acc.append(acc)
+                    jumps_acc[i] = acc
             accs.append(jumps_acc)
         return accs
 
