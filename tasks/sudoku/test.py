@@ -83,13 +83,12 @@ plt.axvline(x=32, ls='--', c='black')
 plt.grid()
 plt.savefig(model_dir + '%d-graph-puzzle-acc.pdf' % n_steps, pad_inches=0)
 plt.close()
-exit(0)
 
 for i in range(18):
     print("%d givens: %f acc" % (i + 17, acc[-1, i, 1]))
 
-print("Rendering steps... This will take a long time.")
 if render_steps:
+    print("Rendering steps... This will take a long time.")
     n_givens = np.sum(quizzes != 0, axis=1)
     idx17 = n_givens == 17
 
