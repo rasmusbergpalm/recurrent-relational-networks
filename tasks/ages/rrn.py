@@ -45,7 +45,7 @@ class AgesRRN(Model):
 
         def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden, keep_prob=1.0):
             with tf.variable_scope(scope):
-                for i in range(1):
+                for i in range(3):
                     x = layers.fully_connected(x, n_hid, weights_regularizer=regularizer)
                 x = layers.dropout(x, keep_prob=keep_prob, is_training=self.is_training)
                 return layers.fully_connected(x, n_out, weights_regularizer=regularizer, activation_fn=None)
@@ -57,9 +57,8 @@ class AgesRRN(Model):
             :param targets: (bs, n)
             :param types: (bs, n)
             :param diffs: (bs, n)
-            :param question: (bs, 1)
-            :param answers: (bs, 1)
-            :param n_jumps: (bs, 1)
+            :param question: (bs, )
+            :param answers: (bs, )
             :return:
             """
             bs = self.batch_size
