@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 model_dir = '/nobackup/titans/rapal/models/sudoku/2c9bfa6/'
 SudokuRecurrentRelationalNet.n_steps = n_steps = 64
-render_steps = True
+render_steps = False
 
 eval_fname = model_dir + '%d-eval.npz' % n_steps
 if not os.path.exists(eval_fname):

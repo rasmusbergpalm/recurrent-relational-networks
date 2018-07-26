@@ -50,8 +50,8 @@ class SudokuRecurrentRelationalNet(Model):
             n_edges = tf.shape(edge_indices)[0]
             edge_features = tf.zeros((n_edges, 1), tf.float32)
             positions = tf.constant([[(i, j) for i in range(9) for j in range(9)] for b in range(self.batch_size)], tf.int32)  # (bs, 81, 2)
-            rows = layers.embed_sequence(positions[:, :, 0], 9, self.emb_size, scope='row-embeddings', unique=True)  # bs, 81, emb_size
-            cols = layers.embed_sequence(positions[:, :, 1], 9, self.emb_size, scope='cols-embeddings', unique=True)  # bs, 81, emb_size
+            rows = 0. * layers.embed_sequence(positions[:, :, 0], 9, self.emb_size, scope='row-embeddings', unique=True)  # bs, 81, emb_size
+            cols = 0. * layers.embed_sequence(positions[:, :, 1], 9, self.emb_size, scope='cols-embeddings', unique=True)  # bs, 81, emb_size
 
             def avg_n(x):
                 return tf.reduce_mean(tf.stack(x, axis=0), axis=0)
