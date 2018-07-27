@@ -7,6 +7,7 @@ import tensorflow as tf
 from tensorboard.plugins.scalar.summary import pb as spb
 from tensorflow.contrib import layers
 from tensorflow.python.data import Dataset
+from tensorflow.python.ops.rnn_cell_impl import LSTMCell
 
 import util
 from message_passing import message_passing
@@ -22,7 +23,7 @@ class AgesRRN(Model):
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     n_steps = 8
-    n_hidden = 256
+    n_hidden = 128
     devices = util.get_devices()
 
     def __init__(self):
@@ -84,14 +85,17 @@ class AgesRRN(Model):
             edge_features = tf.zeros_like(edges, tf.float32)
 
             with tf.variable_scope('steps'):
+                lstm_cell = LSTMCell(self.n_hidden)
+                state = lstm_cell.zero_state(tf.shape(x)[0], tf.float32)
+
                 outputs = []
                 losses = []
                 h = x
 
                 for step in range(self.n_steps):
-                    h_p = h
                     m = message_passing(h, edges, edge_features, lambda x: mlp(x, 'message-fn'))
-                    h = mlp(tf.concat([x, h_p, m], axis=1), 'node-fn')
+                    h = mlp(tf.concat([x, m], axis=1), 'node-fn')
+                    h, state = lstm_cell(h, state)
 
                     logits = tf.unsorted_segment_sum(h, segment_ids, bs)
                     logits = mlp(logits, "out", n_out=100, keep_prob=0.5)
