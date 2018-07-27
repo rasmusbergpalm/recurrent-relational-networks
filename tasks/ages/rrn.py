@@ -22,7 +22,7 @@ class AgesRRN(Model):
     revision = os.environ.get('REVISION')
     message = os.environ.get('MESSAGE')
     n_steps = 8
-    n_hidden = 128
+    n_hidden = 256
     devices = util.get_devices()
 
     def __init__(self):
@@ -36,12 +36,13 @@ class AgesRRN(Model):
         self.mode = tf.placeholder(tf.string, name='mode')
         self.is_training = tf.equal(self.mode, "train")
         self.data = Ages()
+        n_nodes = self.data.n
 
         regularizer = layers.l2_regularizer(0.)
 
-        iterator = self._iterator(self.data)
-
-        n_nodes = 8
+        types, shapes = self.data.types_and_shapes()
+        train_iterator = self._iterator(self.data.train_generator, types, shapes)
+        test_iterator = self._iterator(self.data.test_generator, types, shapes)
 
         def mlp(x, scope, n_hid=self.n_hidden, n_out=self.n_hidden, keep_prob=1.0):
             with tf.variable_scope(scope):
@@ -104,7 +105,13 @@ class AgesRRN(Model):
 
             return losses, outputs
 
-        sources, targets, types, diffs, question, self.answers, self.n_jumps = iterator.get_next()
+        sources, targets, types, diffs, question, self.answers, self.n_jumps = tf.case(
+            {
+                tf.equal(self.mode, "train"): lambda: train_iterator.get_next(),
+                tf.equal(self.mode, "test"): lambda: test_iterator.get_next(),
+            },
+            exclusive=True
+        )
 
         log_losses, outputs = forward(sources, targets, types, diffs, question, self.answers)
 
@@ -152,10 +159,9 @@ class AgesRRN(Model):
         print("Loading %s..." % name)
         self.saver.restore(self.session, name)
 
-    def _iterator(self, data):
-        types, shapes = data.types_and_shapes()
+    def _iterator(self, gen, types, shapes):
         return Dataset.from_generator(
-            data.generator,
+            gen,
             types,
             shapes
         ).batch(self.batch_size).prefetch(1).make_one_shot_iterator()

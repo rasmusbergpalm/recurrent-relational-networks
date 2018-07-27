@@ -2,10 +2,21 @@ import random
 
 import networkx as nx
 import tensorflow as tf
+from itertools import product
 
 
 class Ages:
     n = 8
+
+    def __init__(self):
+        print("Pre-generating graphs...")
+        graphs = [nx.from_prufer_sequence(seq) for seq in product(range(self.n), repeat=self.n - 2)]
+        random.seed(0)
+        graphs = random.sample(graphs, len(graphs))
+        n_train = round(len(graphs) * 0.9)
+        self.train_graphs = graphs[:n_train]
+        self.test_graphs = graphs[n_train:]
+        print("Done.")
 
     def types_and_shapes(self):
         return zip(*(
@@ -18,27 +29,31 @@ class Ages:
             (tf.int32, ()),  # n_jumps
         ))
 
-    def generator(self):
+    def test_generator(self):
         while True:
-            g = nx.random_tree(self.n)
+            yield self.encode_sequence(random.choice(self.test_graphs))
 
-            ages = random.sample(range(0, 99), self.n)
-            anchor = random.randint(0, self.n - 1)
-            edges = list(g.edges)
+    def train_generator(self):
+        while True:
+            yield self.encode_sequence(random.choice(self.train_graphs))
 
-            sources, targets = list(zip(*list(g.edges)))
-            types = [0 if ages[i] >= ages[j] else 1 for i, j in edges]
-            diffs = [abs(ages[i] - ages[j]) for i, j in edges]
+    def encode_sequence(self, g):
+        ages = random.sample(range(0, 99), self.n)
+        anchor = random.randint(0, self.n - 1)
+        edges = list(g.edges)
 
-            # anchor fact
-            sources += (anchor,)
-            targets += (anchor,)
-            types += [2]
-            diffs += [ages[anchor]]
+        sources, targets = list(zip(*list(g.edges)))
+        types = [0 if ages[i] >= ages[j] else 1 for i, j in edges]
+        diffs = [abs(ages[i] - ages[j]) for i, j in edges]
 
-            # question = random.randint(0, self.n - 1)
-            question = list(g.neighbors(anchor))[0]
-            n_jumps = len(nx.shortest_path(g, anchor, question)) - 1
-            answer = ages[question]
+        # anchor fact
+        sources += (anchor,)
+        targets += (anchor,)
+        types += [2]
+        diffs += [ages[anchor]]
 
-            yield sources, targets, types, diffs, question, answer, n_jumps
+        question = random.randint(0, self.n - 1)
+        n_jumps = len(nx.shortest_path(g, anchor, question)) - 1
+        answer = ages[question]
+
+        yield sources, targets, types, diffs, question, answer, n_jumps
