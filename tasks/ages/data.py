@@ -56,4 +56,4 @@ class Ages:
         n_jumps = len(nx.shortest_path(g, anchor, question)) - 1
         answer = ages[question]
 
-        yield sources, targets, types, diffs, question, answer, n_jumps
+        return sources, targets, types, diffs, question, answer, n_jumps
