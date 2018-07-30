@@ -30,6 +30,10 @@ class Ages:
         ))
 
     def test_generator(self):
+        for graph in self.test_graphs:
+            yield self.encode_sequence(graph)
+
+    def dev_generator(self):
         while True:
             yield self.encode_sequence(random.choice(self.test_graphs))
 
